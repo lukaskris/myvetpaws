@@ -18,17 +18,13 @@ class Register extends BaseRegister
                 TextInput::make('email')
                     ->email()
                     ->required(),
+                TextInput::make('phone')
+                    ->tel()
+                    ->telRegex('/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\.\/0-9]*$/')
+                    ->required(),
                 TextInput::make('password')
                     ->password()
-                    ->required(),
-                Select::make('role')
-                    ->options([
-                        1 => 'Owner',
-                        2 => 'Admin',
-                        3 => 'Customer'
-                    ])
                     ->required()
-                    ->native(false)
             ]);
     }
 }
