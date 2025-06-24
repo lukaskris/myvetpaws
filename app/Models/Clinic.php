@@ -21,7 +21,8 @@ class Clinic extends Model
         'service_description',
         'logo',
         'subscription_status',
-        'subscription_ends_at'
+        'subscription_ends_at',
+        'user_id',
     ];
 
     protected $casts = [
@@ -42,5 +43,10 @@ class Clinic extends Model
     public function subscriptions()
     {
         return $this->hasMany(Subscription::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }
