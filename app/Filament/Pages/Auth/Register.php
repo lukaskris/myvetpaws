@@ -21,14 +21,14 @@ class Register extends BaseRegister
                 TextInput::make('password')
                     ->password()
                     ->required(),
-                Select::make('role')
-                    ->options([
-                        1 => 'Owner',
-                        2 => 'Admin',
-                        3 => 'Customer'
-                    ])
-                    ->required()
-                    ->native(false)
+                // Select::make('role')
+                //     ->options([
+                //         1 => 'Owner',
+                //         2 => 'Admin',
+                //         3 => 'Customer'
+                //     ])
+                //     ->required()
+                //     ->native(false)
             ]);
     }
 }
