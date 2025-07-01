@@ -34,10 +34,8 @@ class ClinicResource extends Resource
                     ->required()
                     ->numeric()
                     ->default(1),
-                Forms\Components\Select::make('user_id')
-                    ->label('Created By')
-                    ->relationship('user', 'name')
-                    ->required(),
+                Forms\Components\Hidden::make('user_id')
+                    ->default(fn () => auth()->id()),
             ]);
     }
 
@@ -96,5 +94,9 @@ class ClinicResource extends Resource
             'create' => Pages\CreateClinic::route('/create'),
             'edit' => Pages\EditClinic::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder {
+        return parent::getEloquentQuery()->where('user_id', auth()->id());
     }
 }

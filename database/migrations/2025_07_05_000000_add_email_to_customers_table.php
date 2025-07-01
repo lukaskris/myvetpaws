@@ -11,12 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('customers', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('clinic_id')->constrained()->cascadeOnDelete();
-            $table->string('name');
-            $table->string('phone')->nullable();
-            $table->string('address')->nullable();
+        Schema::table('customers', function (Blueprint $table) {
+            $table->string('email')->nullable()->after('name');
         });
     }
 
@@ -25,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('customers');
+        Schema::table('customers', function (Blueprint $table) {
+            $table->dropColumn('email');
+        });
     }
 };
