@@ -1,10 +1,9 @@
 <?php
-
+// app/Filament/Pages/Auth/Register.php
 namespace App\Filament\Pages\Auth;
 
-use Filament\Forms\Form;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
+use Filament\Forms\Form;
 use Filament\Pages\Auth\Register as BaseRegister;
 
 class Register extends BaseRegister
@@ -14,21 +13,30 @@ class Register extends BaseRegister
         return $form
             ->schema([
                 TextInput::make('name')
-                    ->required(),
+                    ->label('Full Name')
+                    ->required()
+                    ->maxLength(255),
+
                 TextInput::make('email')
                     ->email()
+                    ->required()
+                    ->maxLength(255)
+                    ->unique(),
+
+                TextInput::make('phone')
+                    ->label('Phone Number')
+                    ->tel()
                     ->required(),
+
                 TextInput::make('password')
                     ->password()
-                    ->required(),
-                // Select::make('role')
-                //     ->options([
-                //         1 => 'Owner',
-                //         2 => 'Admin',
-                //         3 => 'Customer'
-                //     ])
-                //     ->required()
-                //     ->native(false)
+                    ->required()
+                    ->confirmed(),
+
+                TextInput::make('password_confirmation')
+                    ->password()
+                    ->required()
+                    ->label('Confirm Password'),
             ]);
     }
 }

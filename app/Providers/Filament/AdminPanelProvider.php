@@ -11,6 +11,7 @@ use App\Filament\Pages\Auth\Register;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -29,18 +30,33 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->registration(Register::class)
+            ->brandName('MyVetPaws')
+            ->brandLogo(asset('images/logo.webp'))
+            ->brandLogoHeight('2.5rem')
+            ->favicon(asset('images/favicon.ico'))
             ->colors([
-                'primary' => Color::Green,
+                'primary' => Color::hex('#3b82f6'), // A pet-friendly blue
+                'secondary' => Color::hex('#10b981'), // A calming green
+                'danger' => Color::Rose,
+                'info' => Color::Blue,
+                'success' => Color::Emerald,
+                'warning' => Color::Orange,
             ])
-            // ->favicon(url:'/favicon.png')
+            ->font('Poppins') // Modern, clean font
+            ->maxContentWidth(MaxWidth::Full)
+            ->sidebarWidth('18rem')
+            ->sidebarFullyCollapsibleOnDesktop()
+            ->topNavigation(false)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,
+                \App\Filament\Pages\SetupClinic::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
+                // Custom widgets for pet clinic metrics
                 Widgets\FilamentInfoWidget::class,
             ])
             ->middleware([
@@ -53,9 +69,16 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                \App\Http\Middleware\CheckClinicSetup::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            ->plugins([
+                // Add any plugins you might need
+            ])
+            ->databaseNotificationsPolling('30s')
+            ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
+            ->databaseNotifications(false);
     }
 }
