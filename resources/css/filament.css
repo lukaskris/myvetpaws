@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+.filament-main-content {
+    background-color: #ffffff !important;
+}
+
+.filament-sidebar {
+    background-color: #f8fafc !important;
+}
+
+
+/* Removed problematic @apply usage */

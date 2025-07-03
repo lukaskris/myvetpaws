@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->string('password');
+            $table->string('phone');
             $table->tinyInteger('role')->comment('1 = Dokter, 2 = Admin');
             $table->foreignId('clinic_id')->nullable()->constrained()->nullOnDelete();
             $table->rememberToken();

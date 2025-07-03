@@ -16,6 +16,10 @@ return new class extends Migration
             $table->string('name');
             $table->string('address');
             $table->string('phone');
+            $table->string('open_days');
+            $table->string('open_time');
+            $table->string('close_time');
+            $table->dateTime('subscription_ends_at')->nullable();
             $table->tinyInteger('subscription_status')->default(1)->comment('1 = Trial, 2 = Active, 3 = Expired');
             $table->timestamps();
             $table->softDeletes();

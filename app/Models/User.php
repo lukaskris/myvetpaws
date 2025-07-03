@@ -16,6 +16,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'phone',
         'role',
         'clinic_id'
     ];
@@ -43,7 +44,6 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-
             'password' => 'hashed',
         ];
     }
