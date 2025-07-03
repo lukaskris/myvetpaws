@@ -19,6 +19,7 @@ class Pet extends Model
         'color',
         'vaccinated_at',
         'customer_id',
+        'clinic_id',
     ];
 
     protected $casts = [

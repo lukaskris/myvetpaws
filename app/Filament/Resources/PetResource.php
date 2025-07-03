@@ -64,7 +64,8 @@ class PetResource extends Resource
                                 $set('clinic_id', $customer->clinic_id);
                             }
                         }
-                    }),
+                    })
+                    ->dehydrated(),
                 // Forms\Components\Select::make('clinic_id')
                 //     ->label('Clinic')
                 //     ->options(function ($get) {
