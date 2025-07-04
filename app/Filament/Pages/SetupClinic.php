@@ -75,7 +75,7 @@ class SetupClinic extends Page implements HasForms
     {
         $state = $this->form->getState();     // ← state['data'] exists
         $data = $state['data'];               // ← extract nested array
-        
+
         $clinic = Clinic::create([
             'name' => $data['name'],
             'address' => $data['address'],

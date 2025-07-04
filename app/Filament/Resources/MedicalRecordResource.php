@@ -33,18 +33,19 @@ class MedicalRecordResource extends Resource
                 Forms\Components\TextInput::make('user_id')
                     ->required()
                     ->numeric(),
-                Forms\Components\Textarea::make('complaints')
+                Forms\Components\Textarea::make('anamesa')
                     ->columnSpanFull(),
-                Forms\Components\TextInput::make('category'),
+                Forms\Components\TextInput::make('Physical Examination'),
+                // dianogsa opsi milih
                 Forms\Components\Textarea::make('diagnosis')
                     ->columnSpanFull(),
                 Forms\Components\Textarea::make('treatment_plan')
                     ->columnSpanFull(),
-                Forms\Components\DatePicker::make('next_visit_at'),
-                Forms\Components\TextInput::make('status')
-                    ->required()
-                    ->numeric()
-                    ->default(1),
+                // Forms\Components\DatePicker::make('next_visit_at'),
+                // Forms\Components\TextInput::make('status')
+                //     ->required()
+                //     ->numeric()
+                //     ->default(1),
             ]);
     }
 
