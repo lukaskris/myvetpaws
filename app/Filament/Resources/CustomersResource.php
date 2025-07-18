@@ -15,27 +15,54 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class CustomersResource extends Resource
 {
     protected static ?string $model = Customer::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
+    protected static ?string $navigationLabel = 'Owner';
+    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static ?string $navigationGroup = 'Client';
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')->required(),
-                Forms\Components\TextInput::make('email')->email()->required(),
-                Forms\Components\TextInput::make('phone')->tel()->required(),
-                Forms\Components\TextInput::make('address')->required(),
-                Forms\Components\Select::make('clinic_id')
-                    ->label('Clinic')
-                    ->relationship('clinic', 'name', fn ($query) => $query->where('user_id', auth()->id()))
-                    ->required(),
+                Forms\Components\FileUpload::make('profile_picture')
+                    ->label('Profile Picture')
+                    ->image()
+                    ->directory('profile-pictures')
+                    ->imagePreviewHeight('100'),
+                Forms\Components\TextInput::make('title')->label('Title'),
+                Forms\Components\TextInput::make('email')->email()->label('Email'),
+                Forms\Components\TextInput::make('phone')->tel()->label('Phone'),
+                Forms\Components\TextInput::make('address')->label('Address'),
+                Forms\Components\Section::make('Pets')
+                    ->schema([
+                        Forms\Components\Repeater::make('pets')
+                            ->relationship()
+                            ->schema([
+                                Forms\Components\TextInput::make('name')->required(),
+                                Forms\Components\Select::make('species_id')
+                                    ->label('Species')
+                                    ->relationship('species', 'name')
+                                    ->createOptionForm([
+                                        Forms\Components\TextInput::make('name')->required(),
+                                    ])
+                                    ->required(),
+                                Forms\Components\Select::make('breed_id')
+                                    ->label('Breed')
+                                    ->relationship('breed', 'name')
+                                    ->createOptionForm([
+                                        Forms\Components\TextInput::make('name')->required(),
+                                    ])
+                                    ->required(),
+                                Forms\Components\Select::make('gender')
+                                ->options([
+                                    'Male' => 'male',
+                                    'Female' => 'female',
+                                ]),
+                                Forms\Components\DatePicker::make('birth_date'),
+                            ])
+                            ->label('Pets')
+                            ->createItemButtonLabel('Add Pet'),
+                    ]),
             ]);
-    }
-
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()->whereHas('clinic', function ($q) { $q->where('user_id', auth()->id()); });
     }
 
     public static function table(Table $table): Table
@@ -46,7 +73,6 @@ class CustomersResource extends Resource
                 Tables\Columns\TextColumn::make('email')->label('Email'),
                 Tables\Columns\TextColumn::make('phone')->label('Phone'),
                 Tables\Columns\TextColumn::make('address')->label('Address'),
-                Tables\Columns\TextColumn::make('clinic.name')->label('Clinic'),
             ])
             ->filters([
                 //
@@ -61,12 +87,12 @@ class CustomersResource extends Resource
             ]);
     }
 
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
+    // public static function getRelations(): array
+    // {
+    //     return [
+    //         \App\Filament\Resources\CustomersResource\RelationManagers\PetRelationManager::class,
+    //     ];
+    // }
 
     public static function getPages(): array
     {

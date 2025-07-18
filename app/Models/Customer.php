@@ -15,19 +15,15 @@ class Customer extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function clinic()
-    {
-        return $this->belongsTo(Clinic::class);
-    }
-
     public function pets()
     {
         return $this->hasMany(Pet::class);
     }
 
     protected $fillable = [
+        'profile_picture',
         'name',
-        'clinic_id',
+        'title',
         'phone',
         'email',
         'address',

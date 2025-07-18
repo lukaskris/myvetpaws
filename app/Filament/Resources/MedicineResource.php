@@ -30,9 +30,6 @@ class MedicineResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('clinic_id')
-                    ->required()
-                    ->numeric(),
                 Forms\Components\TextInput::make('name')
                     ->required(),
                 Forms\Components\TextInput::make('unit')
@@ -52,9 +49,6 @@ class MedicineResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('clinic_id')
-                    ->numeric()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('unit')

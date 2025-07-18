@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class MedicalRecordResource extends Resource
 {
     protected static ?string $model = MedicalRecord::class;
-
+    protected static bool $shouldRegisterNavigation = false;
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
@@ -26,10 +26,6 @@ class MedicalRecordResource extends Resource
                 Forms\Components\TextInput::make('pet_id')
                     ->required()
                     ->numeric(),
-                Forms\Components\Select::make('clinic_id')
-                    ->label('Clinic')
-                    ->relationship('clinic', 'name')
-                    ->required(),
                 Forms\Components\TextInput::make('user_id')
                     ->required()
                     ->numeric(),
@@ -54,9 +50,6 @@ class MedicalRecordResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('pet_id')
                     ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('clinic.name')
-                    ->label('Clinic')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('user_id')
                     ->numeric()

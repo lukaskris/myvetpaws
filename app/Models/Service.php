@@ -11,12 +11,11 @@ class Service extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'clinic_id',
         'name',
-        'category',
-        'description',
+        'duration',
+        'duration_type',
         'price',
-        'is_active'
+        'is_active',
     ];
 
     public function clinic()

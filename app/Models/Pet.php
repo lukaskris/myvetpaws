@@ -10,16 +10,18 @@ class Pet extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $table = 'pets';
+
     protected $fillable = [
         'name',
-        'species',
+        'species_id',
         'breed',
+        'breed_id',
         'gender',
-        'birth_date',
         'color',
+        'birth_date',
         'vaccinated_at',
         'customer_id',
-        'clinic_id',
     ];
 
     protected $casts = [
@@ -27,13 +29,38 @@ class Pet extends Model
         'vaccinated_at' => 'datetime'
     ];
 
-    public function customer()
+    protected static function booted()
     {
-        return $this->belongsTo(Customer::class);
+        static::saving(function ($pet) {
+            if ($pet->species_id) {
+                $species = $pet->species()->first();
+                $pet->species = $species ? $species->name : null;
+            }
+            if ($pet->breed_id) {
+                $breed = $pet->breed()->first();
+                $pet->breed = $breed ? $breed->name : null;
+            }
+        });
     }
 
     public function medicalRecords()
     {
         return $this->hasMany(MedicalRecord::class);
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    // Removed owner() relationship
+    public function species()
+    {
+        return $this->belongsTo(Species::class, 'species_id');
+    }
+
+    public function breed()
+    {
+        return $this->belongsTo(Breeds::class, 'breed_id');
     }
 }

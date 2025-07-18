@@ -18,6 +18,11 @@ class PetResource extends Resource
     protected static ?string $model = Pet::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Client';
+    // protected static bool $shouldRegisterNavigation = false;
+    protected static ?int $navigationSort = 1;
+
+
 
     public static function form(Form $form): Form
     {
@@ -25,66 +30,26 @@ class PetResource extends Resource
             ->schema([
                 Forms\Components\Select::make('customer_id')
                     ->label('Customer')
-                    ->relationship('customer', 'name', function ($query) {
-                        return $query->whereHas('clinic', function ($q) {
-                            $q->where('user_id', auth()->id());
-                        });
+                    ->relationship('customer', 'name', function (\Illuminate\Database\Eloquent\Builder $query) {
+                        $query->where('user_id', auth()->id());
                     })
                     ->required()
-                    ->reactive()
-                    ->afterStateUpdated(function ($state, $set) {
-                        $customer = \App\Models\Customer::find($state);
-                        if ($customer && $customer->clinic) {
-                            $set('clinic_name', $customer->clinic->name);
-                            $set('clinic_id', $customer->clinic_id);
-                        } else {
-                            $set('clinic_name', null);
-                            $set('clinic_id', null);
-                        }
-                    }),
-                Forms\Components\TextInput::make('clinic_name')
-                    ->label('Clinic')
-                    ->disabled()
-                    ->afterStateHydrated(function ($component, $state, $set, $get) {
-                        $customerId = $get('customer_id');
-                        if ($customerId) {
-                            $customer = \App\Models\Customer::find($customerId);
-                            if ($customer && $customer->clinic) {
-                                $set('clinic_name', $customer->clinic->name);
-                            }
-                        }
-                    })
-                    ->dehydrated(false),
-                Forms\Components\Hidden::make('clinic_id')
-                    ->afterStateHydrated(function ($component, $state, $set, $get) {
-                        $customerId = $get('customer_id');
-                        if ($customerId) {
-                            $customer = \App\Models\Customer::find($customerId);
-                            if ($customer) {
-                                $set('clinic_id', $customer->clinic_id);
-                            }
-                        }
-                    })
-                    ->dehydrated(),
-                // Forms\Components\Select::make('clinic_id')
-                //     ->label('Clinic')
-                //     ->options(function ($get) {
-                //         $customerId = $get('customer_id');
-                //         if (!$customerId) return [];
-                //         $customer = \App\Models\Customer::find($customerId);
-                //         if (!$customer) return [];
-                //         return [
-                //             $customer->clinic_id => optional($customer->clinic)->name
-                //         ];
-                //     })
-                //     ->required()
-                //     ->disabled(fn ($get) => ! $get('customer_id'))
-                //     ->dehydrated(),
+                    ->reactive(),
                 Forms\Components\TextInput::make('name')
                     ->required(),
-                Forms\Components\TextInput::make('species'),
-                Forms\Components\TextInput::make('breed'),
-                Forms\Components\TextInput::make('gender'),
+                Forms\Components\Select::make('species_id')
+                    ->label('Species')
+                    ->relationship('species', 'name')
+                    ->required(),
+                Forms\Components\Select::make('breed_id')
+                    ->label('Breed')
+                    ->relationship('breed', 'name')
+                    ->required(),
+                Forms\Components\Select::make('gender')
+                    ->options([
+                        'Male' => 'male',
+                        'Female' => 'female',
+                    ]),
                 Forms\Components\DatePicker::make('birth_date'),
             ]);
     }
@@ -94,9 +59,6 @@ class PetResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('customer_id')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('clinic_id')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('name')
