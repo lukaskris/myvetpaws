@@ -21,7 +21,8 @@ class MedicalRecord extends Model
         'treatment_plan',
         'next_visit_at',
         'status',
-        'category'
+        'category',
+        'clinic_id'
     ];
 
     protected $casts = [
@@ -47,5 +48,10 @@ class MedicalRecord extends Model
     {
         return $this->belongsToMany(Medicine::class, 'medical_record_medicine')
             ->withPivot('quantity');
+    }
+
+    public function clinic()
+    {
+        return $this->belongsTo(Clinic::class);
     }
 }

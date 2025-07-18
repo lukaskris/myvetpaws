@@ -10,20 +10,22 @@ class Customer extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = [
-        'name',
-        'phone',
-        'address',
-        'clinic_id'
-    ];
-
-    public function clinic()
+    public function user()
     {
-        return $this->belongsTo(Clinic::class);
+        return $this->belongsTo(User::class);
     }
 
     public function pets()
     {
         return $this->hasMany(Pet::class);
     }
+
+    protected $fillable = [
+        'profile_picture',
+        'name',
+        'title',
+        'phone',
+        'email',
+        'address',
+    ];
 }
