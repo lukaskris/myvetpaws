@@ -3,6 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Models\Diagnose;
+use App\Models\Pet;
 
 class OpnameList extends Model
 {
@@ -10,11 +14,35 @@ class OpnameList extends Model
     protected $fillable = [
         'name',
         'description',
-        'price'
+        'price',
+        'date',
+        'customer_id',
+        'medical_notes',
     ];
     protected $casts = [
         'name' => 'string',
         'description' => 'string',
         'price' => 'integer',
+        'date' => 'date',
     ];
+    
+    public function diagnoses(): HasMany
+    {
+        return $this->hasMany(Diagnose::class, 'opname_list_id');
+    }
+    
+    public function pets(): BelongsToMany
+    {
+        return $this->belongsToMany(Pet::class, 'opname_list_pet')
+            ->withPivot('medical_notes')
+            ->withTimestamps();
+    }
+    
+    public function prescriptions()
+    {
+        // Jika prescription berelasi via detail_transaction, tambahkan relasi di sini
+        // return $this->hasManyThrough(Prescription::class, DetailTransaction::class);
+        // Jika prescription langsung ke opname_list, gunakan relasi berikut:
+        return $this->hasMany(Prescription::class, 'opname_list_id');
+    }
 }
