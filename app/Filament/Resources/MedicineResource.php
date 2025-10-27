@@ -32,6 +32,9 @@ class MedicineResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('name')
                     ->required(),
+                Forms\Components\TextInput::make('alias')
+                    ->label('Alias')
+                    ->maxLength(255),
                 Forms\Components\TextInput::make('unit')
                     ->required(),
                 Forms\Components\TextInput::make('stock')
@@ -51,6 +54,10 @@ class MedicineResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('alias')
+                    ->label('Alias')
+                    ->searchable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('unit')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('stock')

@@ -3,19 +3,18 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\OpnameListResource\Pages;
-use App\Filament\Resources\OpnameListResource\RelationManagers;
-use App\Models\OpnameList;
 use App\Models\Customer;
-use App\Models\Diagnose;
-use App\Models\Pet;
+use App\Models\DiagnosisOption;
+use App\Models\OpnameList;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class OpnameListResource extends Resource
 {
@@ -30,66 +29,121 @@ class OpnameListResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('General Information')
+                Forms\Components\Section::make('Opname Details')
                     ->schema([
                         Forms\Components\DatePicker::make('date')
+                            ->label('Date')
                             ->required()
                             ->default(now()),
-                        
-                        Forms\Components\Select::make('customer_id')
-                            ->label('Owner')
-                            ->options(Customer::all()->pluck('name', 'id'))
-                            ->searchable()
-                            ->required()
-                            ->reactive(),
-                        
                         Forms\Components\TextInput::make('name')
+                            ->label('Title')
                             ->required()
                             ->maxLength(255),
+                        Forms\Components\Select::make('customer_id')
+                            ->label('Owner')
+                            ->relationship('customer', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(fn (Set $set) => $set('pets', [])),
                         Forms\Components\TextInput::make('price')
+                            ->label('Price')
                             ->numeric()
+                            ->prefix('Rp')
                             ->required(),
+                        Forms\Components\Select::make('pets')
+                            ->label('Pets')
+                            ->relationship(
+                                name: 'pets',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: function (Builder $query, Get $get): void {
+                                    $customerId = $get('customer_id');
+
+                                    if (! $customerId) {
+                                        $query->whereRaw('1 = 0');
+
+                                        return;
+                                    }
+
+                                    $query->where('customer_id', $customerId);
+                                },
+                            )
+                            ->multiple()
+                            ->preload()
+                            ->searchable()
+                            ->disabled(fn (Get $get): bool => blank($get('customer_id')))
+                            ->helperText('Select owner first to choose pets.')
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2)
+                    ->columnSpanFull(),
+                Forms\Components\Section::make('Notes')
+                    ->schema([
                         Forms\Components\Textarea::make('description')
+                            ->label('Description')
+                            ->rows(4)
                             ->maxLength(65535),
-                        
                         Forms\Components\Textarea::make('medical_notes')
                             ->label('Medical Notes')
+                            ->rows(4)
                             ->maxLength(65535),
                     ])
+                    ->columns(1)
                     ->columnSpanFull(),
-                
-                Forms\Components\Section::make('Diagnose')
+                Forms\Components\Section::make('Diagnoses')
                     ->schema([
                         Forms\Components\Repeater::make('diagnoses')
-                            ->relationship('diagnoses')
+                            ->relationship()
+                            ->label('Diagnoses')
                             ->schema([
                                 Forms\Components\Select::make('name')
                                     ->label('Select Diagnose')
-                                    ->options([
-                                        'Alergi' => 'Alergi',
-                                        'Blood Parasitic' => 'Blood Parasitic',
-                                        'Clamidia' => 'Clamidia',
-                                        'Cystitis' => 'Cystitis',
-                                        'Ear mite' => 'Ear mite',
-                                        'Endoparasitic' => 'Endoparasitic',
-                                    ])
-                                    ->searchable()
+                                    ->options(function (): array {
+                                        $custom = DiagnosisOption::query()
+                                            ->orderBy('name')
+                                            ->pluck('name')
+                                            ->all();
+
+                                        $customOptions = collect($custom)
+                                            ->mapWithKeys(fn (string $name) => [$name => $name])
+                                            ->all();
+
+                                        $defaults = [
+                                            'Alergi' => 'Alergi',
+                                            'Blood Parasitic' => 'Blood Parasitic',
+                                            'Clamidia' => 'Clamidia',
+                                            'Cystitis' => 'Cystitis',
+                                            'Ear mite' => 'Ear mite',
+                                            'Endoparasitic' => 'Endoparasitic',
+                                        ];
+
+                                        return $customOptions + $defaults;
+                                    })
                                     ->preload()
+                                    ->searchable()
                                     ->createOptionForm([
                                         Forms\Components\TextInput::make('name')
+                                            ->label('Diagnose Name')
                                             ->required()
                                             ->maxLength(255),
                                     ])
+                                    ->createOptionUsing(function (array $data): string {
+                                        $option = DiagnosisOption::firstOrCreate([
+                                            'name' => $data['name'],
+                                        ]);
+
+                                        return $option->name;
+                                    })
                                     ->required(),
-                                
                                 Forms\Components\Select::make('type')
+                                    ->label('Type')
                                     ->options([
                                         'Primary' => 'Primary',
                                         'Differential' => 'Differential',
                                     ])
                                     ->default('Primary')
                                     ->required(),
-                                
                                 Forms\Components\Radio::make('prognose')
                                     ->label('Prognose')
                                     ->options([
@@ -97,11 +151,15 @@ class OpnameListResource extends Resource
                                         'Dubius' => 'Dubius',
                                         'Infausta' => 'Infausta',
                                     ])
+                                    ->inline()
                                     ->default('Fausta')
                                     ->required()
-                                    ->inline(),
+                                    ->columnSpan(2),
                             ])
-                            ->columns(1)
+                            ->columns(2)
+                            ->minItems(0)
+                            ->columnSpanFull()
+                            ->createItemButtonLabel('Add diagnosis'),
                     ])
                     ->columnSpanFull(),
             ]);
@@ -175,10 +233,7 @@ class OpnameListResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            // RelationManagers\PetsRelationManager::class,
-            RelationManagers\DiagnosesRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array

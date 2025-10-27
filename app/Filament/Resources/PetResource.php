@@ -29,12 +29,11 @@ class PetResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('customer_id')
-                    ->label('Customer')
-                    ->relationship('customer', 'name', function (\Illuminate\Database\Eloquent\Builder $query) {
-                        $query->where('user_id', auth()->id());
-                    })
-                    ->required()
-                    ->reactive(),
+                    ->label('Owner')
+                    ->relationship('customer', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->required(),
                 Forms\Components\TextInput::make('name')
                     ->required(),
                 Forms\Components\Select::make('species_id')

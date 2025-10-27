@@ -7,100 +7,55 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class DiagnosesRelationManager extends RelationManager
 {
     protected static string $relationship = 'diagnoses';
-    
-    protected static ?string $title = 'Diagnose';
-    
-    protected static ?string $modelLabel = 'Diagnose';
+
+    protected static ?string $recordTitleAttribute = 'name';
 
     public function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Diagnose')
-                    ->schema([
-                        Forms\Components\Select::make('name')
-                            ->label('Select Diagnose')
-                            ->options([
-                                'Alergi' => 'Alergi',
-                                'Blood Parasitic' => 'Blood Parasitic',
-                                'Clamidia' => 'Clamidia',
-                                'Cystitis' => 'Cystitis',
-                                'Ear mite' => 'Ear mite',
-                                'Endoparasitic' => 'Endoparasitic',
-                            ])
-                            ->searchable()
-                            ->preload()
-                            ->createOptionForm([
-                                Forms\Components\TextInput::make('name')
-                                    ->required()
-                                    ->maxLength(255),
-                            ])
-                            ->required(),
-                        
-                        Forms\Components\Select::make('type')
-                            ->options([
-                                'Primary' => 'Primary',
-                                'Differential' => 'Differential',
-                            ])
-                            ->default('Primary')
-                            ->required(),
-                        
-                        Forms\Components\Radio::make('prognose')
-                            ->label('Prognose')
-                            ->options([
-                                'Fausta' => 'Fausta',
-                                'Dubius' => 'Dubius',
-                                'Infausta' => 'Infausta',
-                            ])
-                            ->default('Fausta')
-                            ->required()
-                            ->inline(),
+                Forms\Components\TextInput::make('name')
+                    ->label('Diagnosis')
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\Select::make('prognose')
+                    ->options([
+                        'Fausta' => 'Fausta',
+                        'Dubius' => 'Dubius',
+                        'Infausta' => 'Infausta',
                     ])
-                    ->columns(1),
+                    ->required(),
+                Forms\Components\Select::make('type')
+                    ->options([
+                        'Primary' => 'Primary',
+                        'Differential' => 'Differential',
+                    ])
+                    ->required(),
             ]);
     }
 
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('name')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Name')
+                    ->label('Diagnosis')
                     ->searchable(),
-                
-                Tables\Columns\TextColumn::make('prognose')
-                    ->label('Prognose')
-                    ->formatStateUsing(function ($state) {
-                        return view('filament.components.prognose-radio', [
-                            'state' => $state,
-                        ]);
-                    }),
-                
+                Tables\Columns\BadgeColumn::make('prognose')
+                    ->colors([
+                        'success' => 'Fausta',
+                        'warning' => 'Dubius',
+                        'danger' => 'Infausta',
+                    ]),
                 Tables\Columns\TextColumn::make('type')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'Primary' => 'primary',
-                        'Differential' => 'info',
-                        default => 'gray',
-                    }),
-                
-                Tables\Columns\TextColumn::make('action')
-                    ->label('Action')
-                    ->formatStateUsing(function ($record) {
-                        return view('filament.components.delete-button', [
-                            'record' => $record,
-                        ]);
-                    }),
-            ])
-            ->filters([
-                //
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make(),

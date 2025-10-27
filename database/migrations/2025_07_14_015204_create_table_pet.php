@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Schema::table('pets', function (Blueprint $table) {
-        //     $table->foreignId('species_id')->nullable()->after('breed')->constrained('species')->nullOnDelete();
-        //     $table->foreignId('breed_id')->nullable()->after('species_id')->constrained('breeds')->nullOnDelete();
-        // });
+        Schema::table('pets', function (Blueprint $table) {
+            $table->foreignId('species_id')->nullable()->after('breed')->constrained('species')->nullOnDelete();
+            $table->foreignId('breed_id')->nullable()->after('species_id')->constrained('breeds')->nullOnDelete();
+        });
     }
 
     /**
@@ -22,9 +22,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Schema::table('pets', function (Blueprint $table) {
-        //     $table->dropColumn('species_id');
-        //     $table->dropColumn('breed_id');
-        // });
+        Schema::table('pets', function (Blueprint $table) {
+            $table->dropColumn('species_id');
+            $table->dropColumn('breed_id');
+        });
     }
 };

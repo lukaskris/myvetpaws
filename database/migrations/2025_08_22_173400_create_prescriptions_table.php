@@ -13,16 +13,9 @@ return new class extends Migration
     {
         Schema::create('prescriptions', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('opname_list_id');
-            $table->unsignedBigInteger('product_id');
-            $table->float('amount');
-            $table->string('frequency');
-            $table->integer('duration');
-            $table->float('total_amount');
+            $table->unsignedBigInteger('detail_transaction_id');
+            $table->foreign('detail_transaction_id')->references('id')->on('detail_transactions')->onDelete('cascade');
             $table->timestamps();
-
-            $table->foreign('opname_list_id')->references('id')->on('opname_lists')->onDelete('cascade');
-            $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade');
         });
     }
 

@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Models\Customer;
 use App\Models\Diagnose;
 use App\Models\Pet;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OpnameList extends Model
 {
@@ -24,25 +26,24 @@ class OpnameList extends Model
         'description' => 'string',
         'price' => 'integer',
         'date' => 'date',
+        'medical_notes' => 'string',
+        'customer_id' => 'integer',
     ];
-    
+
     public function diagnoses(): HasMany
     {
         return $this->hasMany(Diagnose::class, 'opname_list_id');
     }
-    
+
     public function pets(): BelongsToMany
     {
         return $this->belongsToMany(Pet::class, 'opname_list_pet')
-            ->withPivot('medical_notes')
+            ->withPivot(['medical_notes'])
             ->withTimestamps();
     }
-    
-    public function prescriptions()
+
+    public function customer(): BelongsTo
     {
-        // Jika prescription berelasi via detail_transaction, tambahkan relasi di sini
-        // return $this->hasManyThrough(Prescription::class, DetailTransaction::class);
-        // Jika prescription langsung ke opname_list, gunakan relasi berikut:
-        return $this->hasMany(Prescription::class, 'opname_list_id');
+        return $this->belongsTo(Customer::class);
     }
 }

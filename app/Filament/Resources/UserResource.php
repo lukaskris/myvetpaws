@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Hash;
 
 class UserResource extends Resource
 {
@@ -26,18 +27,24 @@ class UserResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
-                    ->required(),
+                    ->required()
+                    ->maxLength(255),
                 Forms\Components\TextInput::make('email')
                     ->email()
-                    ->required(),
+                    ->required()
+                    ->unique(ignoreRecord: true),
                 Forms\Components\TextInput::make('password')
                     ->password()
-                    ->required(),
-                Forms\Components\TextInput::make('role')
+                    ->required(fn (string $operation): bool => $operation === 'create')
+                    ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? Hash::make($state) : null)
+                    ->dehydrated(fn (?string $state): bool => filled($state)),
+                Forms\Components\Select::make('role')
                     ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('clinic_id')
-                    ->numeric(),
+                    ->options([
+                        1 => 'Owner',
+                        2 => 'Admin',
+                        3 => 'Customer',
+                    ]),
             ]);
     }
 
@@ -57,9 +64,6 @@ class UserResource extends Resource
                         default => 'Unknown Role',
                     };
                 })->sortable(),
-                Tables\Columns\TextColumn::make('clinic_id')
-                    ->numeric()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
