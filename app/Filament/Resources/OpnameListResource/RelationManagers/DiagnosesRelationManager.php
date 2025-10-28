@@ -2,8 +2,14 @@
 
 namespace App\Filament\Resources\OpnameListResource\RelationManagers;
 
+use App\Models\Medicine;
+use App\Models\Service;
+use App\Models\DiagnosisMaster;
 use Filament\Forms;
+use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -22,54 +28,189 @@ class DiagnosesRelationManager extends RelationManager
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Diagnose')
+                Forms\Components\Section::make('Detail Information')
                     ->schema([
-                        Forms\Components\Select::make('pet_id')
-                            ->label('Pet')
-                            ->relationship('pet', 'name', modifyQueryUsing: function ($query) {
-                                $ownerId = optional($this->getOwnerRecord())->customer_id;
-                                return $ownerId ? $query->where('customer_id', $ownerId) : $query;
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Select::make('pet_id')
+                                    ->label('Pet')
+                                    ->relationship('pet', 'name', modifyQueryUsing: function ($query) {
+                                        $ownerId = optional($this->getOwnerRecord())->customer_id;
+                                        return $ownerId ? $query->where('customer_id', $ownerId) : $query;
+                                    })
+                                    ->searchable()
+                                    ->preload()
+                                    ->required(),
+                                Forms\Components\TextInput::make('duration_days')
+                                    ->label('Duration (days)')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->maxValue(7)
+                                    ->default(0),
+                            ]),
+                        Forms\Components\Repeater::make('details')
+                            ->label('Detail Items')
+                            ->relationship('details')
+                            ->addActionLabel('Add Detail')
+                            ->addAction(function (Action $action) {
+                                return $action
+                                    ->modalHeading('Pilih Detail')
+                                    ->modalWidth('lg')
+                                    ->form([
+                                        Forms\Components\ToggleButtons::make('detail_item_sections')
+                                            ->label('Detail Type')
+                                            ->options([
+                                                'diagnose' => 'Diagnose',
+                                                'medicine' => 'Medicine',
+                                                'service' => 'Service',
+                                            ])
+                                            ->multiple()
+                                            ->required()
+                                            ->rules(['required', 'array', 'min:1'])
+                                            ->columns(3),
+                                    ])
+                                    ->action(function (array $data, Forms\Components\Repeater $component): void {
+                                        $newUuid = $component->generateUuid();
+                                        $items = $component->getState() ?? [];
+
+                                        $newItem = [
+                                            'detail_item_sections' => $data['detail_item_sections'],
+                                            'medicineDetails' => [],
+                                            'serviceDetails' => [],
+                                        ];
+
+                                        if ($newUuid) {
+                                            $items[$newUuid] = $newItem;
+                                        } else {
+                                            $items[] = $newItem;
+                                            $newUuid = array_key_last($items);
+                                        }
+
+                                        $component->state($items);
+
+                                        $childContainer = $component->getChildComponentContainer($newUuid);
+                                        if ($childComponent = $childContainer->getComponent('detail_item_sections')) {
+                                            $childComponent->state($data['detail_item_sections']);
+                                        }
+                                        $childContainer->fill();
+                                        $component->collapsed(false, shouldMakeComponentCollapsible: false);
+                                        $component->callAfterStateUpdated();
+                                    });
                             })
-                            ->searchable()
-                            ->preload()
-                            ->required(),
-                        Forms\Components\Select::make('name')
-                            ->label('Select Diagnose')
-                            ->options([
-                                'Alergi' => 'Alergi',
-                                'Blood Parasitic' => 'Blood Parasitic',
-                                'Clamidia' => 'Clamidia',
-                                'Cystitis' => 'Cystitis',
-                                'Ear mite' => 'Ear mite',
-                                'Endoparasitic' => 'Endoparasitic',
+                            ->defaultItems(0)
+                            ->minItems(0)
+                            ->schema([
+                                Forms\Components\Hidden::make('detail_item_sections')
+                                    ->default([])
+                                    ->dehydrated(false)
+                                    ->reactive()
+                                    ->afterStateHydrated(function (Forms\Components\Component $component, $state): void {
+                                        if (is_null($state)) {
+                                            $component->state([]);
+                                        }
+                                    }),
+                                Forms\Components\Placeholder::make('detail_item_sections_display')
+                                    ->content(fn (Forms\Get $get) => null)
+                                    ->hidden(),
+                                Forms\Components\Group::make([
+                                    Forms\Components\Hidden::make('name')->dehydrated(),
+                                    Forms\Components\Placeholder::make('diagnose_heading')
+                                        ->content('Diagnose Details')
+                                        ->hidden(),
+                                    Forms\Components\Select::make('diagnosis_master_id')
+                                        ->label('Diagnose')
+                                        ->options(fn () => DiagnosisMaster::query()->orderBy('name')->pluck('name', 'id'))
+                                        ->searchable()
+                                        ->preload()
+                                        ->reactive()
+                                        ->visible(fn (Forms\Get $get) => $this->shouldShowDetailSection($get, 'diagnose'))
+                                        ->required(fn (Forms\Get $get) => $this->shouldShowDetailSection($get, 'diagnose'))
+                                        ->afterStateHydrated(function (?int $state, Forms\Set $set): void {
+                                            if ($state) {
+                                                $set('name', optional(DiagnosisMaster::find($state))->name);
+                                            }
+                                        })
+                                        ->afterStateUpdated(function (?int $state, Forms\Set $set): void {
+                                            $set('name', $state ? optional(DiagnosisMaster::find($state))->name : null);
+                                        }),
+                                    Forms\Components\Placeholder::make('diagnosis_master_notes')
+                                        ->label('Diagnosis Reference Notes')
+                                        ->content(fn (Forms\Get $get) => optional(DiagnosisMaster::find($get('diagnosis_master_id')))->notes ?? 'Tidak ada catatan tambahan.')
+                                        ->visible(fn (Forms\Get $get) => $this->shouldShowDetailSection($get, 'diagnose'))
+                                        ->columnSpanFull(),
+                                    Forms\Components\Select::make('type')
+                                        ->label('Type')
+                                        ->options([
+                                            'Primary' => 'Primary',
+                                            'Differential' => 'Differential',
+                                        ])
+                                        ->default('Primary')
+                                        ->required(fn (Forms\Get $get) => $this->shouldShowDetailSection($get, 'diagnose'))
+                                        ->visible(fn (Forms\Get $get) => $this->shouldShowDetailSection($get, 'diagnose')),
+                                    Forms\Components\Radio::make('prognose')
+                                        ->label('Prognose')
+                                        ->options([
+                                            'Fausta' => 'Fausta',
+                                            'Dubius' => 'Dubius',
+                                            'Infausta' => 'Infausta',
+                                        ])
+                                        ->default('Fausta')
+                                        ->inline()
+                                        ->required(fn (Forms\Get $get) => $this->shouldShowDetailSection($get, 'diagnose'))
+                                        ->visible(fn (Forms\Get $get) => $this->shouldShowDetailSection($get, 'diagnose')),
+                                    Forms\Components\Textarea::make('notes')
+                                        ->label('Appointment Notes')
+                                        ->rows(2)
+                                        ->visible(fn (Forms\Get $get) => $this->shouldShowDetailSection($get, 'diagnose')),
+                                ])
+                                    ->columns(2)
+                                    ->visible(fn (Forms\Get $get) => in_array('diagnose', (array) ($get('detail_item_sections') ?? []))),
+                                Forms\Components\Repeater::make('medicineDetails')
+                                    ->label('Medicine Details')
+                                    ->relationship('medicineDetails')
+                                    ->defaultItems(1)
+                                    ->minItems(1)
+                                    ->maxItems(1)
+                                    ->schema([
+                                        Forms\Components\Select::make('medicine_id')
+                                            ->label('Medicine')
+                                            ->options(fn () => Medicine::query()
+                                                ->orderBy('name')
+                                                ->pluck('name', 'id'))
+                                            ->searchable()
+                                            ->preload()
+                                            ->required(),
+                                        Forms\Components\Textarea::make('notes')
+                                            ->label('Notes')
+                                            ->rows(2),
+                                    ])
+                                    ->columns(12)
+                                    ->visible(fn (Forms\Get $get) => $this->shouldShowDetailSection($get, 'medicine'))
+                                    ->helperText('Catatan obat untuk detail ini.'),
+                                Forms\Components\Repeater::make('serviceDetails')
+                                    ->label('Service Details')
+                                    ->relationship('serviceDetails')
+                                    ->addActionLabel('Add Service')
+                                    ->defaultItems(0)
+                                    ->minItems(0)
+                                    ->helperText('Detail ini berisi layanan yang dibutuhkan.')
+                                    ->schema([
+                                        Forms\Components\Select::make('service_id')
+                                            ->label('Service')
+                                            ->options(fn () => Service::query()
+                                                ->orderBy('name')
+                                                ->pluck('name', 'id'))
+                                            ->searchable()
+                                            ->preload()
+                                            ->required(),
+                                        Forms\Components\Textarea::make('notes')
+                                            ->label('Notes')
+                                            ->rows(2),
+                                    ])
+                                    ->columns(12)
+                                    ->visible(fn (Forms\Get $get) => $this->shouldShowDetailSection($get, 'service')),
                             ])
-                            ->searchable()
-                            ->preload()
-                            ->createOptionForm([
-                                Forms\Components\TextInput::make('name')
-                                    ->required()
-                                    ->maxLength(255),
-                            ])
-                            ->required(),
-                        
-                        Forms\Components\Select::make('type')
-                            ->options([
-                                'Primary' => 'Primary',
-                                'Differential' => 'Differential',
-                            ])
-                            ->default('Primary')
-                            ->required(),
-                        
-                        Forms\Components\Radio::make('prognose')
-                            ->label('Prognose')
-                            ->options([
-                                'Fausta' => 'Fausta',
-                                'Dubius' => 'Dubius',
-                                'Infausta' => 'Infausta',
-                            ])
-                            ->default('Fausta')
-                            ->required()
-                            ->inline(),
+                            ->columns(1),
                     ])
                     ->columns(1),
             ]);
@@ -124,5 +265,127 @@ class DiagnosesRelationManager extends RelationManager
                 ]),
             ]);
     }
-}
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $details = array_map(function (array $detail): array {
+            $detail['medicineDetails'] = array_values($detail['medicineDetails'] ?? []);
+            $detail['serviceDetails'] = array_values($detail['serviceDetails'] ?? []);
+
+            $sections = array_values($detail['detail_item_sections'] ?? []);
+
+            if (empty($sections)) {
+                if (! empty($detail['diagnosis_master_id']) || ! empty($detail['name']) || ! empty($detail['type']) || ! empty($detail['prognose'])) {
+                    $sections[] = 'diagnose';
+                }
+
+                if (! empty($detail['medicineDetails'])) {
+                    $sections[] = 'medicine';
+                }
+
+                if (! empty($detail['serviceDetails'])) {
+                    $sections[] = 'service';
+                }
+            }
+
+            $detail['detail_item_sections'] = array_values(array_unique($sections));
+
+            return $detail;
+        }, array_values($data['details'] ?? []));
+
+        $data['details'] = $details;
+
+        return $data;
+    }
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        return $this->normalizeDiagnosePayload($data);
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        return $this->normalizeDiagnosePayload($data);
+    }
+
+    protected function shouldShowDetailSection(Forms\Get $get, string $section): bool
+    {
+        $sections = array_values((array) ($get('detail_item_sections') ?? []));
+
+        if (empty($sections)) {
+            if ($get('diagnosis_master_id') || $get('name') || $get('type') || $get('prognose')) {
+                $sections[] = 'diagnose';
+            }
+
+            if (! empty($get('medicineDetails'))) {
+                $sections[] = 'medicine';
+            }
+
+            if (! empty($get('serviceDetails'))) {
+                $sections[] = 'service';
+            }
+        }
+
+        return in_array($section, array_unique($sections), true);
+    }
+
+    protected function normalizeDiagnosePayload(array $data): array
+    {
+        $details = array_map(function (array $detail): array {
+            $detail['medicineDetails'] = array_values($detail['medicineDetails'] ?? []);
+            $detail['serviceDetails'] = array_values($detail['serviceDetails'] ?? []);
+
+            $sections = array_values($detail['detail_item_sections'] ?? []);
+            $detail['detail_item_sections'] = $sections;
+
+            if (in_array('medicine', $detail['detail_item_sections'], true) && empty($detail['medicineDetails'])) {
+                $detail['medicineDetails'] = [[]];
+            }
+
+            if (in_array('service', $detail['detail_item_sections'], true) && empty($detail['serviceDetails'])) {
+                $detail['serviceDetails'] = [[]];
+            }
+
+            if (! empty($detail['diagnosis_master_id'])) {
+                $master = DiagnosisMaster::find($detail['diagnosis_master_id']);
+                if ($master) {
+                    $detail['name'] = $master->name;
+                    $detail['notes'] = $detail['notes'] ?? null;
+                }
+            }
+
+            $hasDiagnose = in_array('diagnose', $sections, true)
+                || ! empty($detail['diagnosis_master_id'])
+                || ! empty($detail['name'])
+                || ! empty($detail['type'])
+                || ! empty($detail['prognose']);
+
+            if (! $hasDiagnose) {
+                if (! empty($detail['medicineDetails']) && empty($detail['serviceDetails'])) {
+                    $detail['name'] = 'Medicine Detail';
+                } elseif (empty($detail['medicineDetails']) && ! empty($detail['serviceDetails'])) {
+                    $detail['name'] = 'Service Detail';
+                } elseif (! empty($detail['medicineDetails']) && ! empty($detail['serviceDetails'])) {
+                    $detail['name'] = 'Medicine & Service Detail';
+                }
+            }
+
+            $detail['name'] = $detail['name'] ?? 'General';
+            $detail['type'] = $detail['type'] ?? 'Primary';
+            $detail['prognose'] = $detail['prognose'] ?? 'Fausta';
+            $detail['notes'] = $detail['notes'] ?? null;
+
+            return $detail;
+        }, array_values($data['details'] ?? []));
+
+        $data['details'] = $details;
+
+        $firstDetail = $details[0] ?? null;
+
+        $data['name'] = $firstDetail['name'] ?? $data['name'] ?? 'General';
+        $data['type'] = $firstDetail['type'] ?? $data['type'] ?? 'Primary';
+        $data['prognose'] = $firstDetail['prognose'] ?? $data['prognose'] ?? 'Fausta';
+
+        return $data;
+    }
+}

@@ -34,4 +34,9 @@ class Diagnose extends Model
     {
         return $this->hasMany(DiagnoseDetail::class);
     }
+
+    public function services(): HasMany
+    {
+        return $this->hasMany(DiagnoseService::class);
+    }
 }

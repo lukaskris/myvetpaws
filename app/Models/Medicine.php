@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Medicine extends Model
@@ -34,5 +35,10 @@ class Medicine extends Model
     {
         return $this->belongsToMany(MedicalRecord::class, 'medical_record_medicine')
             ->withPivot('quantity');
+    }
+
+    public function diagnoseDetailMedicines(): HasMany
+    {
+        return $this->hasMany(DiagnoseDetailMedicine::class);
     }
 }
