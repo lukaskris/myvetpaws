@@ -14,7 +14,7 @@ class OpnameList extends Model
     protected $fillable = [
         'name',
         'description',
-        'price',
+        'discount',
         'date',
         'customer_id',
         'medical_notes',
@@ -22,7 +22,7 @@ class OpnameList extends Model
     protected $casts = [
         'name' => 'string',
         'description' => 'string',
-        'price' => 'integer',
+        'discount' => 'decimal:2',
         'date' => 'date',
     ];
     
@@ -34,7 +34,7 @@ class OpnameList extends Model
     public function pets(): BelongsToMany
     {
         return $this->belongsToMany(Pet::class, 'opname_list_pet')
-            ->withPivot('medical_notes')
+            ->withPivot('medical_notes', 'duration_days', 'is_done')
             ->withTimestamps();
     }
     

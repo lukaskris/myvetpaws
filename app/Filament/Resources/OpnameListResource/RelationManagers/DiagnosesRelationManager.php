@@ -24,6 +24,15 @@ class DiagnosesRelationManager extends RelationManager
             ->schema([
                 Forms\Components\Section::make('Diagnose')
                     ->schema([
+                        Forms\Components\Select::make('pet_id')
+                            ->label('Pet')
+                            ->relationship('pet', 'name', modifyQueryUsing: function ($query) {
+                                $ownerId = optional($this->getOwnerRecord())->customer_id;
+                                return $ownerId ? $query->where('customer_id', $ownerId) : $query;
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->required(),
                         Forms\Components\Select::make('name')
                             ->label('Select Diagnose')
                             ->options([
@@ -116,3 +125,4 @@ class DiagnosesRelationManager extends RelationManager
             ]);
     }
 }
+

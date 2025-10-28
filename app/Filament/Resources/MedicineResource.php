@@ -32,6 +32,9 @@ class MedicineResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('name')
                     ->required(),
+                Forms\Components\TextInput::make('alias')
+                    ->label('Alias')
+                    ->maxLength(255),
                 Forms\Components\TextInput::make('unit')
                     ->required(),
                 Forms\Components\TextInput::make('stock')

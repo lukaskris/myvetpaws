@@ -6,16 +6,15 @@ use App\Filament\Resources\OpnameListResource\Pages;
 use App\Filament\Resources\OpnameListResource\RelationManagers;
 use App\Models\OpnameList;
 use App\Models\Customer;
-use App\Models\Diagnose;
 use App\Models\Pet;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class OpnameListResource extends Resource
 {
@@ -23,8 +22,18 @@ class OpnameListResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?int $navigationSort = 3;
-    protected static ?string $navigationGroup = 'Opnames';
+    protected static ?string $navigationGroup = 'Appointments';
+    protected static ?string $navigationLabel = 'Appointments';
 
+    public static function getModelLabel(): string
+    {
+        return 'Appointment';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Appointments';
+    }
 
     public static function form(Form $form): Form
     {
@@ -35,34 +44,57 @@ class OpnameListResource extends Resource
                         Forms\Components\DatePicker::make('date')
                             ->required()
                             ->default(now()),
-                        
+
                         Forms\Components\Select::make('customer_id')
                             ->label('Owner')
                             ->options(Customer::all()->pluck('name', 'id'))
                             ->searchable()
                             ->required()
-                            ->reactive(),
-                        
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                $diagnoses = $get('diagnoses') ?? [];
+                                foreach (array_keys($diagnoses) as $index) {
+                                    $set("diagnoses.$index.pet_id", null);
+                                }
+                            }),
+
                         Forms\Components\TextInput::make('name')
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\TextInput::make('price')
+                        Forms\Components\TextInput::make('discount')
+                            ->label('Discount')
                             ->numeric()
                             ->required(),
-                        Forms\Components\Textarea::make('description')
-                            ->maxLength(65535),
-                        
-                        Forms\Components\Textarea::make('medical_notes')
-                            ->label('Medical Notes')
-                            ->maxLength(65535),
                     ])
                     ->columnSpanFull(),
-                
+
                 Forms\Components\Section::make('Diagnose')
                     ->schema([
                         Forms\Components\Repeater::make('diagnoses')
                             ->relationship('diagnoses')
+                            ->addActionLabel('Add Diagnose')
+                            ->helperText('Klik Add untuk menambah diagnose lain pada pet yang sama.')
                             ->schema([
+                                Forms\Components\Select::make('pet_id')
+                                    ->label('Pet')
+                                    ->options(fn (Get $get) => Pet::query()
+                                        ->when($get('../../customer_id'), fn ($q, $owner) => $q->where('customer_id', $owner))
+                                        ->orderBy('name')
+                                        ->pluck('name', 'id'))
+                                    ->placeholder('Pilih Pet')
+                                    ->reactive()
+                                    ->searchable()
+                                    ->preload()
+                                    ->required()
+                                    ->disabled(fn (Get $get) => empty($get('../../customer_id'))),
+
+                                Forms\Components\TextInput::make('duration_days')
+                                    ->label('Duration (days)')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->maxValue(7)
+                                    ->default(0),
+
                                 Forms\Components\Select::make('name')
                                     ->label('Select Diagnose')
                                     ->options([
@@ -73,6 +105,7 @@ class OpnameListResource extends Resource
                                         'Ear mite' => 'Ear mite',
                                         'Endoparasitic' => 'Endoparasitic',
                                     ])
+                                    ->placeholder('Pilih Diagnose')
                                     ->searchable()
                                     ->preload()
                                     ->createOptionForm([
@@ -81,7 +114,7 @@ class OpnameListResource extends Resource
                                             ->maxLength(255),
                                     ])
                                     ->required(),
-                                
+
                                 Forms\Components\Select::make('type')
                                     ->options([
                                         'Primary' => 'Primary',
@@ -89,7 +122,7 @@ class OpnameListResource extends Resource
                                     ])
                                     ->default('Primary')
                                     ->required(),
-                                
+
                                 Forms\Components\Radio::make('prognose')
                                     ->label('Prognose')
                                     ->options([
@@ -101,7 +134,7 @@ class OpnameListResource extends Resource
                                     ->required()
                                     ->inline(),
                             ])
-                            ->columns(1)
+                            ->columns(2)
                     ])
                     ->columnSpanFull(),
             ]);
@@ -115,23 +148,19 @@ class OpnameListResource extends Resource
                     ->date()
                     ->sortable()
                     ->toggleable(),
-                
                 Tables\Columns\TextColumn::make('customer.name')
                     ->label('Owner')
                     ->sortable()
                     ->searchable(),
-                
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
-                
-                Tables\Columns\TextColumn::make('price')
+                Tables\Columns\TextColumn::make('discount')
+                    ->label('Discount')
                     ->money('IDR')
                     ->sortable(),
-                
                 Tables\Columns\TextColumn::make('pets_count')
                     ->label('Number of Pets')
                     ->counts('pets'),
-                
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -145,23 +174,6 @@ class OpnameListResource extends Resource
                 Tables\Filters\SelectFilter::make('customer')
                     ->relationship('customer', 'name')
                     ->searchable(),
-                
-                Tables\Filters\Filter::make('date')
-                    ->form([
-                        Forms\Components\DatePicker::make('created_from'),
-                        Forms\Components\DatePicker::make('created_until'),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['created_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('date', '>=', $date),
-                            )
-                            ->when(
-                                $data['created_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('date', '<=', $date),
-                            );
-                    }),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -176,7 +188,7 @@ class OpnameListResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // RelationManagers\PetsRelationManager::class,
+            RelationManagers\PetsRelationManager::class,
             RelationManagers\DiagnosesRelationManager::class,
         ];
     }
@@ -190,3 +202,4 @@ class OpnameListResource extends Resource
         ];
     }
 }
+

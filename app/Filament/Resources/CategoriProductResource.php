@@ -26,9 +26,7 @@ class CategoriProductResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('name')
                     ->required(),
-                Forms\Components\TextInput::make('action')
-                    ->required()
-                    ->numeric()
+                Forms\Components\Hidden::make('action')
                     ->default(1),
             ]);
     }
