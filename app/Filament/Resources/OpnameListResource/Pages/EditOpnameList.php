@@ -22,6 +22,7 @@ class EditOpnameList extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $data['name'] = $this->makeGeneratedName($data);
+        $data['description'] = $data['description'] ?? $data['name'];
 
         return $data;
     }

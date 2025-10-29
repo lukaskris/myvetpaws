@@ -145,86 +145,21 @@ class OpnameListResource extends Resource
                                         'service'  => 'Service',
                                         default    => 'Detail',
                                     })
-                                    ->addActionLabel('Add Detail')
-                                    ->addAction(function (Action $action) {
-                                        return $action
-                                            ->modalHeading('Tambah Detail')
-                                            ->modalDescription('Pilih tipe detail yang ingin ditambahkan')
-                                            ->modalWidth('lg')
-                                            ->form([
-                                                Forms\Components\ToggleButtons::make('detail_item_section_choice')
-                                                    ->label('Detail Type')
-                                                    ->options([
-                                                        'diagnose' => 'Diagnose',
-                                                        'medicine' => 'Medicine',
-                                                        'service' => 'Service',
-                                                    ])
-                                                    ->icons([
-                                                        'diagnose' => 'heroicon-o-clipboard-document-check',
-                                                        'medicine' => 'heroicon-o-beaker',
-                                                        'service'  => 'heroicon-o-wrench-screwdriver',
-                                                    ])
-                                                    ->colors([
-                                                        'diagnose' => 'primary',
-                                                        'medicine' => 'success',
-                                                        'service'  => 'warning',
-                                                    ])
-                                                    ->required()
-                                                    ->inline()
-                                                    ->columns(3),
-                                            ])
-                                                ->action(function (array $data, Forms\Components\Repeater $component): void {
-                                                $newUuid = $component->generateUuid();
-                                                $items = $component->getState() ?? [];
- 
-                                                $section = $data['detail_item_section_choice'] ?? 'diagnose';
- 
-                                                $newItem = [
-                                                    'detail_item_sections' => $section,
-                                                    'medicineDetails' => $section === 'medicine' ? [[
-                                                        'medicine_id' => null,
-                                                        'notes' => null,
-                                                    ]] : [],
-                                                    'serviceDetails' => $section === 'service' ? [[
-                                                        'service_id' => null,
-                                                        'notes' => null,
-                                                    ]] : [],
-                                                    'diagnosis_master_id' => null,
-                                                    'type' => $section === 'diagnose' ? 'Primary' : null,
-                                                    'prognose' => $section === 'diagnose' ? 'Fausta' : null,
-                                                    'notes' => null,
-                                                    'name' => match ($section) {
-                                                        'diagnose' => 'Diagnose',
-                                                        'medicine' => 'Medicine Detail',
-                                                        'service' => 'Service Detail',
-                                                        default => 'Detail',
-                                                    },
-                                                ];
- 
-                                                 if ($newUuid) {
-                                                     $items[$newUuid] = $newItem;
-                                                 } else {
-                                                     $items[] = $newItem;
-                                                     $newUuid = array_key_last($items);
-                                                 }
-
-                                                $component->state($items);
-
-                                                $childContainer = $component->getChildComponentContainer($newUuid);
-                                                if ($childComponent = $childContainer->getComponent('detail_item_sections')) {
-                                                    $childComponent->state($section);
-                                                }
-                                                $childContainer->fill();
-                                                $component->collapsed(false, shouldMakeComponentCollapsible: false);
-                                                $component->callAfterStateUpdated();
-                                            });
-                                    })
+                                    ->createItemButtonLabel('Add Detail')
                                     ->defaultItems(0)
                                     ->minItems(0)
                                     ->collapsed(false)
                                     ->schema([
-                                        Forms\Components\Hidden::make('detail_item_sections')
-                                            ->dehydrated()
+                                        Forms\Components\Select::make('detail_item_sections')
+                                            ->label('Detail Type')
+                                            ->options([
+                                                'diagnose' => 'Diagnose',
+                                                'medicine' => 'Medicine',
+                                                'service' => 'Service',
+                                            ])
+                                            ->placeholder('Pilih tipe detail')
+                                            ->required()
+                                            ->native(false)
                                             ->reactive()
                                             ->afterStateHydrated(function ($state, Set $set, Get $get) {
                                                 if ($state === 'medicine' && empty($get('medicineDetails'))) {
@@ -256,7 +191,9 @@ class OpnameListResource extends Resource
                                             }),
 
                                         Forms\Components\Group::make([
-                                            Forms\Components\Hidden::make('name')->dehydrated(),
+                                            Forms\Components\Hidden::make('name')
+                                                ->default('Diagnose')
+                                                ->dehydrated(),
                                         Forms\Components\Placeholder::make('diagnose_heading')
                                             ->content('Diagnose Details')
                                             ->hidden(),
@@ -268,6 +205,28 @@ class OpnameListResource extends Resource
                                                 ->placeholder('Pilih Diagnose')
                                                 ->searchable()
                                                 ->preload()
+                                                ->createOptionForm([
+                                                    Forms\Components\TextInput::make('name')
+                                                        ->label('Nama Diagnose')
+                                                        ->required(),
+                                                    Forms\Components\Textarea::make('notes')
+                                                        ->label('Catatan')
+                                                        ->rows(3),
+                                                ])
+                                                ->createOptionUsing(function (array $data): int {
+                                                    $diagnosis = DiagnosisMaster::create([
+                                                        'name' => $data['name'],
+                                                        'notes' => $data['notes'] ?? null,
+                                                    ]);
+
+                                                    return $diagnosis->getKey();
+                                                })
+                                                ->createOptionAction(function (Action $action) {
+                                                    return $action
+                                                        ->modalHeading('Tambah Diagnose')
+                                                        ->modalSubmitActionLabel('Simpan Diagnose')
+                                                        ->modalCancelActionLabel('Batal');
+                                                })
                                                 ->reactive()
                                                 ->visible(fn (Get $get) => self::shouldShowDetailSection($get, 'diagnose'))
                                                 ->required(fn (Get $get) => self::shouldShowDetailSection($get, 'diagnose'))
@@ -318,6 +277,7 @@ class OpnameListResource extends Resource
                                                 ->disableItemDeletion()
                                                 ->reorderable(false)
                                                 ->collapsible(false)
+                                                ->columns(2)
                                                 ->schema([
                                                     Forms\Components\Select::make('medicine_id')
                                                         ->label('Medicine')
@@ -327,12 +287,13 @@ class OpnameListResource extends Resource
                                                         ->placeholder('Pilih Obat')
                                                         ->searchable()
                                                         ->preload()
-                                                        ->required(),
+                                                        ->required()
+                                                        ->columnSpan(1),
                                                     Forms\Components\Textarea::make('notes')
                                                         ->label('Notes')
-                                                        ->rows(2),
+                                                        ->rows(3)
+                                                        ->columnSpan(1),
                                                 ])
-                                                ->columns(12)
                                                 ->helperText('Catatan obat untuk detail ini.'),
                                         ])
                                             ->visible(fn (Get $get) => self::shouldShowDetailSection($get, 'medicine')),
@@ -347,6 +308,7 @@ class OpnameListResource extends Resource
                                                 ->disableItemDeletion()
                                                 ->reorderable(false)
                                                 ->collapsible(false)
+                                                ->columns(2)
                                                 ->schema([
                                                     Forms\Components\Select::make('service_id')
                                                         ->label('Service')
@@ -356,12 +318,13 @@ class OpnameListResource extends Resource
                                                         ->placeholder('Pilih Layanan')
                                                         ->searchable()
                                                         ->preload()
-                                                        ->required(),
+                                                        ->required()
+                                                        ->columnSpan(1),
                                                     Forms\Components\Textarea::make('notes')
                                                         ->label('Notes')
-                                                        ->rows(2),
+                                                        ->rows(3)
+                                                        ->columnSpan(1),
                                                 ])
-                                                ->columns(12)
                                                 ->helperText('Detail ini berisi layanan yang dibutuhkan.'),
                                         ])
                                             ->visible(fn (Get $get) => self::shouldShowDetailSection($get, 'service')),
@@ -442,6 +405,15 @@ class OpnameListResource extends Resource
                 }
             }
 
+            if (empty($detail['name'])) {
+                $detail['name'] = match ($section) {
+                    'diagnose' => 'Diagnose',
+                    'medicine' => 'Medicine Detail',
+                    'service' => 'Service Detail',
+                    default => 'General',
+                };
+            }
+
             $detail['name'] = $detail['name'] ?? 'General';
             if ($section === 'diagnose') {
                 $detail['type'] = $detail['type'] ?? 'Primary';
@@ -504,6 +476,11 @@ class OpnameListResource extends Resource
                     ->searchable(),
             ])
             ->actions([
+                Tables\Actions\Action::make('invoice')
+                    ->label('Invoice')
+                    ->icon('heroicon-o-document-text')
+                    ->url(fn (OpnameList $record): string => static::getUrl('invoice', ['record' => $record]))
+                    ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
@@ -527,6 +504,7 @@ class OpnameListResource extends Resource
             'index' => Pages\ListOpnameLists::route('/'),
             'create' => Pages\CreateOpnameList::route('/create'),
             'edit' => Pages\EditOpnameList::route('/{record}/edit'),
+            'invoice' => Pages\ViewInvoice::route('/{record}/invoice'),
         ];
     }
 }

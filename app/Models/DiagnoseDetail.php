@@ -40,4 +40,23 @@ class DiagnoseDetail extends Model
     {
         return $this->hasMany(DiagnoseService::class, 'diagnose_detail_id');
     }
+
+    protected static function booted(): void
+    {
+        static::creating(fn (DiagnoseDetail $detail) => $detail->name = static::ensureName($detail));
+        static::updating(fn (DiagnoseDetail $detail) => $detail->name = static::ensureName($detail));
+    }
+
+    protected static function ensureName(DiagnoseDetail $detail): string
+    {
+        if (! empty($detail->name)) {
+            return $detail->name;
+        }
+
+        if (! empty($detail->diagnosis_master_id)) {
+            return optional($detail->diagnosisMaster()->first())->name ?? 'Diagnose';
+        }
+
+        return 'General';
+    }
 }

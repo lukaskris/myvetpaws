@@ -14,6 +14,7 @@ class CreateOpnameList extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['name'] = $this->makeGeneratedName($data);
+        $data['description'] = $data['description'] ?? $data['name'];
 
         return $data;
     }

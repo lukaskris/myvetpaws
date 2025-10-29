@@ -154,7 +154,9 @@ class DiagnosesRelationManager extends RelationManager
                                         }
                                     }),
                                 Forms\Components\Group::make([
-                                    Forms\Components\Hidden::make('name')->dehydrated(),
+                                Forms\Components\Hidden::make('name')
+                                    ->default('Diagnose')
+                                    ->dehydrated(),
                                     Forms\Components\Placeholder::make('diagnose_heading')
                                         ->content('Diagnose Details')
                                         ->hidden(),
@@ -433,6 +435,15 @@ class DiagnosesRelationManager extends RelationManager
                 } elseif (! empty($detail['medicineDetails']) && ! empty($detail['serviceDetails'])) {
                     $detail['name'] = 'Medicine & Service Detail';
                 }
+            }
+
+            if (empty($detail['name'])) {
+                $detail['name'] = match ($section) {
+                    'diagnose' => 'Diagnose',
+                    'medicine' => 'Medicine Detail',
+                    'service' => 'Service Detail',
+                    default => 'General',
+                };
             }
 
             $detail['name'] = $detail['name'] ?? 'General';

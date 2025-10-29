@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Models\Diagnose;
 use App\Models\Pet;
+use App\Models\Customer;
 
 class OpnameList extends Model
 {
@@ -25,6 +27,11 @@ class OpnameList extends Model
         'discount' => 'decimal:2',
         'date' => 'date',
     ];
+    
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
     
     public function diagnoses(): HasMany
     {
