@@ -279,11 +279,7 @@ class OpnameListResource extends Resource
                                                 ->afterStateUpdated(function (?int $state, Set $set): void {
                                                     $set('name', $state ? optional(DiagnosisMaster::find($state))->name : null);
                                                 }),
-                                            Forms\Components\Placeholder::make('diagnosis_master_notes')
-                                                ->label('Diagnosis Reference Notes')
-                                                ->content(fn (Get $get) => optional(DiagnosisMaster::find($get('diagnosis_master_id')))->notes ?? 'Tidak ada catatan tambahan.')
-                                            ->visible(fn (Get $get) => self::shouldShowDetailSection($get, 'diagnose'))
-                                                ->columnSpanFull(),
+
                                             Forms\Components\Select::make('type')
                                                 ->label('Type')
                                                 ->options([
