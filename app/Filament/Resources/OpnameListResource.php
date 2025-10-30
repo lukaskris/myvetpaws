@@ -12,6 +12,7 @@ use App\Models\Service;
 use App\Models\DiagnosisMaster;
 use Filament\Forms;
 use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\ComponentContainer;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -19,6 +20,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Throwable;
 
 class OpnameListResource extends Resource
 {
@@ -55,12 +57,19 @@ class OpnameListResource extends Resource
                             ->searchable()
                             ->required()
                             ->reactive()
+                            ->afterStateHydrated(function ($state, Set $set): void {
+                                $set('form_owner_id', $state);
+                            })
                             ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                 $diagnoses = $get('diagnoses') ?? [];
                                 foreach (array_keys($diagnoses) as $index) {
                                     $set("diagnoses.$index.pet_id", null);
                                 }
+                                $set('form_owner_id', $state);
                             }),
+                        Forms\Components\Hidden::make('form_owner_id')
+                            ->default(fn (Get $get) => $get('customer_id'))
+                            ->dehydrated(false),
 
                         Forms\Components\TextInput::make('discount')
                             ->label('Discount')
@@ -82,23 +91,40 @@ class OpnameListResource extends Resource
                                     ->modalHeading('Tambah Pet Detail')
                                     ->modalDescription('Pilih satu atau beberapa pet untuk ditambahkan ke appointment ini.')
                                     ->modalWidth('lg')
+                                    ->mountUsing(function (ComponentContainer $form, Get $get) {
+                                        $form->fill([
+                                            'owner_id' => static::resolveOwnerId($get),
+                                        ]);
+                                    })
                                     ->form([
+                                        Forms\Components\Hidden::make('owner_id'),
                                         Forms\Components\Select::make('pet_ids')
                                             ->label('Pet')
-                                            ->options(fn (Get $get) => Pet::query()
-                                                ->when($get('../../customer_id'), fn ($q, $owner) => $q->where('customer_id', $owner))
-                                                ->orderBy('name')
-                                                ->pluck('name', 'id'))
+                                            ->options(function (Get $get) {
+                                                $ownerId = $get('owner_id');
+
+                                                if (! $ownerId) {
+                                                    return [];
+                                                }
+
+                                                return Pet::query()
+                                                    ->where('customer_id', $ownerId)
+                                                    ->orderBy('name')
+                                                    ->pluck('name', 'id');
+                                            })
                                             ->multiple()
-                                            ->required()
+                                            ->placeholder(fn (Get $get) => $get('owner_id')
+                                                ? 'Pilih Pet'
+                                                : 'Pilih owner terlebih dahulu')
+                                            ->disabled(fn (Get $get) => ! $get('owner_id'))
+                                            ->required(fn (Get $get) => (bool) $get('owner_id'))
                                             ->searchable()
                                             ->preload(),
-                                        Forms\Components\TextInput::make('duration_days')
+                                        Forms\Components\Select::make('duration_days')
                                             ->label('Default Duration (days)')
-                                            ->numeric()
-                                            ->minValue(0)
-                                            ->maxValue(7)
-                                            ->default(0),
+                                            ->options(array_combine(range(0, 7), range(0, 7)))
+                                            ->default(0)
+                                            ->required(),
                                     ])
                                     ->action(function (array $data, Forms\Components\Repeater $component): void {
                                         $items = $component->getState() ?? [];
@@ -635,5 +661,79 @@ class OpnameListResource extends Resource
             'edit' => Pages\EditOpnameList::route('/{record}/edit'),
             'invoice' => Pages\ViewInvoice::route('/{record}/invoice'),
         ];
+    }
+
+    protected static function resolveOwnerId(Get $get): ?int
+    {
+        $paths = [
+            '../../customer_id',
+            '../../../customer_id',
+            '../../../../customer_id',
+            '../../current_owner_id',
+            '../../../current_owner_id',
+            '../../../../current_owner_id',
+            '../../form_owner_id',
+            '../../../form_owner_id',
+            '../../../../form_owner_id',
+            'current_owner_id',
+            'customer_id',
+            'form_owner_id',
+            'data.current_owner_id',
+            'data.customer_id',
+            'data.form_owner_id',
+            'record.customer_id',
+            'record.customer.id',
+        ];
+
+        foreach ($paths as $path) {
+            try {
+                $value = $get($path);
+            } catch (Throwable $exception) {
+                continue;
+            }
+
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            if (is_array($value)) {
+                $value = data_get($value, 'id');
+            }
+
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            return (int) $value;
+        }
+
+        if (method_exists($get, 'getLivewire')) {
+            $livewire = $get->getLivewire();
+
+            if ($livewire) {
+                    $fallbackPaths = [
+                        'data.current_owner_id',
+                        'data.customer_id',
+                        'data.form_owner_id',
+                        'form.data.current_owner_id',
+                        'form.data.customer_id',
+                        'form.data.form_owner_id',
+                        'record.customer_id',
+                        'record.customer.id',
+                    ];
+
+                foreach ($fallbackPaths as $path) {
+                    $value = data_get($livewire, $path);
+
+                    if ($value === null || $value === '') {
+                        continue;
+                    }
+
+                    return (int) $value;
+                }
+            }
+        }
+
+        return null;
     }
 }

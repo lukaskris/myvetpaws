@@ -30,10 +30,11 @@ class ServiceResource extends Resource
                     ->required()
                     ->numeric()
                     ->prefix('$'),
-                Forms\Components\TextInput::make('duration')
-                    ->numeric()
-                    ->minValue(1)
-                    ->label('Duration'),
+                Forms\Components\Select::make('duration')
+                    ->label('Duration')
+                    ->options(array_combine(range(0, 7), range(0, 7)))
+                    ->default(0)
+                    ->required(),
                 Forms\Components\Select::make('duration_type')
                     ->options([
                         'minutes' => 'Minutes',
