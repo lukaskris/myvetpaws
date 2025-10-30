@@ -15,6 +15,7 @@ class DiagnoseDetail extends Model
     protected $fillable = [
         'diagnose_id',
         'diagnosis_master_id',
+        'detail_item_sections',
         'name',
         'type',
         'prognose',

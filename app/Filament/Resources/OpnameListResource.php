@@ -45,6 +45,10 @@ class OpnameListResource extends Resource
             ->schema([
                 Forms\Components\Section::make('General Information')
                     ->schema([
+                        // Internal reactive flag to force pet selects to refresh across rows
+                        Forms\Components\Hidden::make('pets_version')
+                            ->default(0)
+                            ->dehydrated(false),
                         Forms\Components\Select::make('customer_id')
                             ->label('Owner')
                             ->options(Customer::all()->pluck('name', 'id'))
@@ -73,7 +77,63 @@ class OpnameListResource extends Resource
                         Forms\Components\Repeater::make('diagnoses')
                             ->relationship('diagnoses')
                             ->addActionLabel('Add Pet Detail')
-                            ->helperText('Klik Add untuk menambah detail lain pada pet yang sama.')
+                            ->addAction(function (Action $action) {
+                                return $action
+                                    ->modalHeading('Tambah Pet Detail')
+                                    ->modalDescription('Pilih satu atau beberapa pet untuk ditambahkan ke appointment ini.')
+                                    ->modalWidth('lg')
+                                    ->form([
+                                        Forms\Components\Select::make('pet_ids')
+                                            ->label('Pet')
+                                            ->options(fn (Get $get) => Pet::query()
+                                                ->when($get('../../customer_id'), fn ($q, $owner) => $q->where('customer_id', $owner))
+                                                ->orderBy('name')
+                                                ->pluck('name', 'id'))
+                                            ->multiple()
+                                            ->required()
+                                            ->searchable()
+                                            ->preload(),
+                                        Forms\Components\TextInput::make('duration_days')
+                                            ->label('Default Duration (days)')
+                                            ->numeric()
+                                            ->minValue(0)
+                                            ->maxValue(7)
+                                            ->default(0),
+                                    ])
+                                    ->action(function (array $data, Forms\Components\Repeater $component): void {
+                                        $items = $component->getState() ?? [];
+                                        $selected = collect($data['pet_ids'] ?? [])
+                                            ->filter()
+                                            ->unique()
+                                            ->values();
+
+                                        $existingPetIds = collect($items)->pluck('pet_id')->filter()->all();
+
+                                        foreach ($selected as $petId) {
+                                            if (in_array($petId, $existingPetIds, true)) {
+                                                continue; // skip duplicates already added
+                                            }
+
+                                            $uuid = $component->generateUuid();
+                                            $newItem = [
+                                                'pet_id' => $petId,
+                                                'duration_days' => $data['duration_days'] ?? 0,
+                                                'details' => [],
+                                            ];
+
+                                            if ($uuid) {
+                                                $items[$uuid] = $newItem;
+                                            } else {
+                                                $items[] = $newItem;
+                                            }
+                                        }
+
+                                        $component->state($items);
+                                        $component->collapsed(false, shouldMakeComponentCollapsible: false);
+                                        $component->callAfterStateUpdated();
+                                    });
+                            })
+                            ->helperText('Klik Add untuk menambah detail lain pada pet yang sama atau pilih banyak pet sekaligus.')
                             ->mutateRelationshipDataBeforeFillUsing(function (array $data): array {
                                 $details = array_map(function (array $detail): array {
                                     $detail['medicineDetails'] = array_values($detail['medicineDetails'] ?? []);
@@ -120,15 +180,41 @@ class OpnameListResource extends Resource
                                     ->schema([
                                         Forms\Components\Select::make('pet_id')
                                             ->label('Pet')
-                                            ->options(fn (Get $get) => Pet::query()
-                                                ->when($get('../../customer_id'), fn ($q, $owner) => $q->where('customer_id', $owner))
-                                                ->orderBy('name')
-                                                ->pluck('name', 'id'))
+                                            ->options(function (Get $get) {
+                                                // Touch the version flag so Filament tracks dependency between rows
+                                                $version = $get('../../pets_version');
+
+                                                $query = Pet::query()
+                                                    ->when($get('../../customer_id'), fn ($q, $owner) => $q->where('customer_id', $owner));
+
+                                                // Exclude pets already selected in other rows, but allow current value
+                                                $diagnoses = $get('../../diagnoses') ?? [];
+                                                $current = $get('pet_id');
+                                                $selectedIds = collect($diagnoses)
+                                                    ->pluck('pet_id')
+                                                    ->filter()
+                                                    ->unique()
+                                                    ->values()
+                                                    ->all();
+                                                $exclude = array_values(array_diff($selectedIds, $current ? [$current] : []));
+                                                if (! empty($exclude)) {
+                                                    $query->whereNotIn('id', $exclude);
+                                                }
+
+                                                return $query->orderBy('name')->pluck('name', 'id');
+                                            })
                                             ->placeholder('Pilih Pet')
                                             ->reactive()
                                             ->searchable()
                                             ->preload()
-                                            ->required(),
+                                            ->required()
+                                            ->rules(['required', 'distinct'])
+                                            ->validationAttribute('Pet')
+                                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                                // Bump a version to refresh all sibling selects and enforce uniqueness
+                                                $version = (int) ($get('../../pets_version') ?? 0);
+                                                $set('../../pets_version', $version + 1);
+                                            }),
                                         Forms\Components\TextInput::make('duration_days')
                                             ->label('Duration (days)')
                                             ->numeric()
@@ -162,6 +248,34 @@ class OpnameListResource extends Resource
                                             ->native(false)
                                             ->reactive()
                                             ->afterStateHydrated(function ($state, Set $set, Get $get) {
+                                                // When editing old data, the section may be missing.
+                                                // Infer it from existing nested details, or default to 'diagnose'.
+                                                if ($state === null || $state === '') {
+                                                    $hasMedicine = ! empty($get('medicineDetails'));
+                                                    $hasService = ! empty($get('serviceDetails'));
+
+                                                    if ($hasMedicine && ! $hasService) {
+                                                        $set('detail_item_sections', 'medicine');
+                                                        if (empty($get('medicineDetails'))) {
+                                                            $set('medicineDetails', [[]]);
+                                                        }
+                                                        $set('serviceDetails', []);
+                                                    } elseif (! $hasMedicine && $hasService) {
+                                                        $set('detail_item_sections', 'service');
+                                                        if (empty($get('serviceDetails'))) {
+                                                            $set('serviceDetails', [[]]);
+                                                        }
+                                                        $set('medicineDetails', []);
+                                                    } else {
+                                                        // Default to diagnose when ambiguous or empty
+                                                        $set('detail_item_sections', 'diagnose');
+                                                        $set('medicineDetails', []);
+                                                        $set('serviceDetails', []);
+                                                    }
+                                                    return; // Done initializing
+                                                }
+
+                                                // Keep nested arrays consistent with the chosen section
                                                 if ($state === 'medicine' && empty($get('medicineDetails'))) {
                                                     $set('medicineDetails', [[]]);
                                                     $set('serviceDetails', []);
@@ -170,7 +284,7 @@ class OpnameListResource extends Resource
                                                     $set('medicineDetails', []);
                                                 } elseif ($state === 'diagnose') {
                                                     $set('medicineDetails', []);
-                                                $set('serviceDetails', []);
+                                                    $set('serviceDetails', []);
                                                 }
                                             })
                                             ->afterStateUpdated(function ($state, Set $set, Get $get) {
@@ -277,6 +391,7 @@ class OpnameListResource extends Resource
                                                 ->disableItemDeletion()
                                                 ->reorderable(false)
                                                 ->collapsible(false)
+                                                ->dehydrated(fn (Get $get) => self::shouldShowDetailSection($get, 'medicine'))
                                                 ->columns(2)
                                                 ->schema([
                                                     Forms\Components\Select::make('medicine_id')
@@ -308,6 +423,7 @@ class OpnameListResource extends Resource
                                                 ->disableItemDeletion()
                                                 ->reorderable(false)
                                                 ->collapsible(false)
+                                                ->dehydrated(fn (Get $get) => self::shouldShowDetailSection($get, 'service'))
                                                 ->columns(2)
                                                 ->schema([
                                                     Forms\Components\Select::make('service_id')
@@ -316,9 +432,13 @@ class OpnameListResource extends Resource
                                                             ->orderBy('name')
                                                             ->pluck('name', 'id'))
                                                         ->placeholder('Pilih Layanan')
+                                                        ->native(false)
                                                         ->searchable()
                                                         ->preload()
-                                                        ->required()
+                                                        // Important: use relative lookup, we're inside serviceDetails.* item
+                                                        ->required(fn (Get $get) => ($get('../detail_item_sections') === 'service'))
+                                                        ->dehydrated(true)
+                                                        ->live()
                                                         ->columnSpan(1),
                                                     Forms\Components\Textarea::make('notes')
                                                         ->label('Notes')
@@ -340,14 +460,23 @@ class OpnameListResource extends Resource
     protected static function shouldShowDetailSection(Get $get, string $section): bool
     {
         $current = $get('detail_item_sections');
+        if ($current === null || $current === '') {
+            $current = 'diagnose';
+        }
         return $current === $section;
     }
 
     protected static function normalizeDiagnosePayload(array $data): array
     {
         $details = array_map(function (array $detail): array {
-            $detail['medicineDetails'] = array_values($detail['medicineDetails'] ?? []);
-            $detail['serviceDetails'] = array_values($detail['serviceDetails'] ?? []);
+            $detail['medicineDetails'] = collect($detail['medicineDetails'] ?? [])
+                ->filter(fn ($row) => ! empty(data_get($row, 'medicine_id')))
+                ->values()
+                ->all();
+            $detail['serviceDetails'] = collect($detail['serviceDetails'] ?? [])
+                ->filter(fn ($row) => ! empty(data_get($row, 'service_id')))
+                ->values()
+                ->all();
 
             // Ensure detail_item_sections is a string (diagnose|medicine|service)
             $section = $detail['detail_item_sections'] ?? null;

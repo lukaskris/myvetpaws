@@ -318,8 +318,14 @@ class DiagnosesRelationManager extends RelationManager
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $details = array_map(function (array $detail): array {
-            $detail['medicineDetails'] = array_values($detail['medicineDetails'] ?? []);
-            $detail['serviceDetails'] = array_values($detail['serviceDetails'] ?? []);
+            $detail['medicineDetails'] = collect($detail['medicineDetails'] ?? [])
+                ->filter(fn ($row) => ! empty(data_get($row, 'medicine_id')))
+                ->values()
+                ->all();
+            $detail['serviceDetails'] = collect($detail['serviceDetails'] ?? [])
+                ->filter(fn ($row) => ! empty(data_get($row, 'service_id')))
+                ->values()
+                ->all();
 
             // Normalize previous array-based state into a single string value
             $section = $detail['detail_item_sections'] ?? null;
