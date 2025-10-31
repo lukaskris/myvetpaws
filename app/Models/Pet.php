@@ -53,6 +53,11 @@ class Pet extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    public function diagnoses()
+    {
+        return $this->hasMany(Diagnose::class);
+    }
+
     // Removed owner() relationship
     public function species()
     {

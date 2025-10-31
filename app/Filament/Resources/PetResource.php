@@ -101,7 +101,7 @@ class PetResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\DiagnosesRelationManager::class,
         ];
     }
 

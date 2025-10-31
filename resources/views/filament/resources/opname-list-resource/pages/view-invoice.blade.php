@@ -10,7 +10,30 @@
 @endphp
 
 <x-filament::page>
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <style>
+        /* Print-only styles to ensure only the invoice content is printed */
+        @media print {
+            /* Hide anything explicitly marked as no-print */
+            .no-print { display: none !important; }
+
+            /* Hide Filament shell elements if present */
+            .fi-sidebar, .fi-topbar, .fi-header, .fi-breadcrumbs, .fi-footer, .fi-global-search { display: none !important; }
+
+            /* Only show invoice area */
+            body * { visibility: hidden; }
+            #invoice-print, #invoice-print * { visibility: visible; }
+            #invoice-print { position: absolute; left: 0; top: 0; width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; background: #ffffff !important; }
+
+            /* Page setup */
+            @page { size: A4; margin: 12mm; }
+
+            /* Tables should not break oddly */
+            table { page-break-inside: auto; }
+            tr, td, th { page-break-inside: avoid; page-break-after: auto; }
+        }
+    </style>
+
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between no-print">
         <div>
             <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">Invoice</h2>
             <p class="text-sm text-gray-500 dark:text-gray-400">
@@ -30,6 +53,7 @@
         </div>
     </div>
 
+    <div id="invoice-print">
     <div class="mt-6 grid gap-6 lg:grid-cols-2">
         <x-filament::section>
             <x-slot name="heading">
@@ -217,4 +241,5 @@
             </div>
         </div>
     </x-filament::section>
+    </div>
 </x-filament::page>
