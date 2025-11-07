@@ -10,6 +10,7 @@ use App\Models\Medicine;
 use App\Models\Pet;
 use App\Models\Service;
 use App\Models\DiagnosisMaster;
+use App\Models\Diagnose;
 use Filament\Forms;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\ComponentContainer;
@@ -20,6 +21,8 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\HtmlString;
 use Throwable;
 
 class OpnameListResource extends Resource
@@ -247,6 +250,11 @@ class OpnameListResource extends Resource
                                             ->minValue(0)
                                             ->maxValue(7)
                                             ->default(0),
+                                        Forms\Components\Placeholder::make('pet_history_preview')
+                                            ->label('Riwayat Pet (3 Terakhir)')
+                                            ->columnSpan(2)
+                                            ->visible(fn (Get $get) => filled($get('pet_id')))
+                                            ->content(fn (Get $get) => static::renderPetHistory($get('pet_id'))),
                                     ]),
                                 Forms\Components\Repeater::make('details')
                                     ->label('Detail Items')
@@ -426,10 +434,25 @@ class OpnameListResource extends Resource
                                                             ->orderBy('name')
                                                             ->pluck('name', 'id'))
                                                         ->placeholder('Pilih Obat')
+                                                        ->reactive()
                                                         ->searchable()
                                                         ->preload()
                                                         ->required()
                                                         ->columnSpan(1),
+                                                    Forms\Components\Placeholder::make('medicine_price_display')
+                                                        ->label('Price')
+                                                        ->columnSpan(1)
+                                                        ->content(function (Get $get) {
+                                                            $medicineId = $get('medicine_id');
+                                                            if (! $medicineId) {
+                                                                return static::formatCurrency(null);
+                                                            }
+
+                                                            $price = optional(Medicine::find($medicineId))->price;
+
+                                                            return static::formatCurrency($price);
+                                                        })
+                                                        ->visible(fn (Get $get) => filled($get('medicine_id'))),
                                                     Forms\Components\Textarea::make('notes')
                                                         ->label('Notes')
                                                         ->rows(3)
@@ -458,6 +481,7 @@ class OpnameListResource extends Resource
                                                             ->orderBy('name')
                                                             ->pluck('name', 'id'))
                                                         ->placeholder('Pilih Layanan')
+                                                        ->reactive()
                                                         ->native(false)
                                                         ->searchable()
                                                         ->preload()
@@ -466,6 +490,20 @@ class OpnameListResource extends Resource
                                                         ->dehydrated(true)
                                                         ->live()
                                                         ->columnSpan(1),
+                                                    Forms\Components\Placeholder::make('service_price_display')
+                                                        ->label('Price')
+                                                        ->columnSpan(1)
+                                                        ->content(function (Get $get) {
+                                                            $serviceId = $get('service_id');
+                                                            if (! $serviceId) {
+                                                                return static::formatCurrency(null);
+                                                            }
+
+                                                            $price = optional(Service::find($serviceId))->price;
+
+                                                            return static::formatCurrency($price);
+                                                        })
+                                                        ->visible(fn (Get $get) => filled($get('service_id'))),
                                                     Forms\Components\Textarea::make('notes')
                                                         ->label('Notes')
                                                         ->rows(3)
@@ -483,6 +521,63 @@ class OpnameListResource extends Resource
             ]);
     }
 
+    protected static function renderPetHistory(?int $petId): HtmlString
+    {
+        if (! $petId) {
+            return new HtmlString('');
+        }
+
+        $history = Diagnose::query()
+            ->with([
+                'opnameList:id,date',
+                'details' => fn ($query) => $query->select('id', 'diagnose_id', 'name', 'notes', 'diagnosis_master_id', 'detail_item_sections'),
+                'details.diagnosisMaster:id,name',
+            ])
+            ->where('pet_id', $petId)
+            ->latest('created_at')
+            ->limit(3)
+            ->get();
+
+        if ($history->isEmpty()) {
+            return new HtmlString('<span class="text-sm text-gray-500">Belum ada history untuk pet ini.</span>');
+        }
+
+        $items = $history->map(function (Diagnose $diagnose): string {
+            $date = optional($diagnose->opnameList)->date ?? $diagnose->created_at;
+            $dateLabel = $date
+                ? ($date instanceof Carbon ? $date->format('d M Y') : Carbon::parse($date)->format('d M Y'))
+                : 'Tanggal tidak tersedia';
+
+            $detailSummary = $diagnose->details
+                ->map(function ($detail) {
+                    $title = $detail->name ?: optional($detail->diagnosisMaster)->name;
+                    $notes = $detail->notes;
+                    $parts = collect([$title, $notes])->filter()->all();
+                    return trim(implode(': ', $parts));
+                })
+                ->filter()
+                ->implode('; ');
+
+            if ($detailSummary === '') {
+                $detailSummary = 'Tidak ada catatan detail.';
+            }
+
+            $metaParts = collect([$dateLabel, $diagnose->type, $diagnose->prognose])
+                ->filter()
+                ->implode(' · ');
+
+            $contentParts = array_filter([
+                '<span class="font-medium">' . e($diagnose->name ?? 'Diagnose') . '</span>',
+                $metaParts ? '<span class="text-xs text-gray-500">' . e($metaParts) . '</span>' : null,
+                '<span class="text-sm text-gray-600">' . e($detailSummary) . '</span>',
+            ]);
+
+            return '<li class="space-y-1">' . implode('<br>', $contentParts) . '</li>';
+        })->implode('');
+
+        return new HtmlString('<ul class="list-disc list-inside space-y-2">' . $items . '</ul>');
+    }
+
     protected static function shouldShowDetailSection(Get $get, string $section): bool
     {
         $current = $get('detail_item_sections');
@@ -490,6 +585,15 @@ class OpnameListResource extends Resource
             $current = 'diagnose';
         }
         return $current === $section;
+    }
+
+    protected static function formatCurrency($value): string
+    {
+        if ($value === null) {
+            return 'Rp 0';
+        }
+
+        return 'Rp ' . number_format((float) $value, 0, ',', '.');
     }
 
     protected static function normalizeDiagnosePayload(array $data): array

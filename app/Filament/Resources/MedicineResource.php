@@ -42,9 +42,10 @@ class MedicineResource extends Resource
                     ->numeric()
                     ->default(0),
                 Forms\Components\TextInput::make('price')
+                    ->label('Price')
                     ->required()
                     ->numeric()
-                    ->prefix('$'),
+                    ->prefix('Rp '),
             ]);
     }
 
@@ -60,7 +61,9 @@ class MedicineResource extends Resource
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('price')
-                    ->money()
+                    ->label('Price')
+                    ->formatStateUsing(fn ($state) => static::formatCurrency($state))
+                    ->alignEnd()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -98,5 +101,14 @@ class MedicineResource extends Resource
             'create' => Pages\CreateMedicine::route('/create'),
             'edit' => Pages\EditMedicine::route('/{record}/edit'),
         ];
+    }
+
+    protected static function formatCurrency($value): string
+    {
+        if ($value === null) {
+            return 'Rp 0';
+        }
+
+        return 'Rp ' . number_format((float) $value, 0, ',', '.');
     }
 }

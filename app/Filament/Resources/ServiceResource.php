@@ -29,7 +29,7 @@ class ServiceResource extends Resource
                 Forms\Components\TextInput::make('price')
                     ->required()
                     ->numeric()
-                    ->prefix('$'),
+                    ->prefix('Rp '),
                 Forms\Components\Select::make('duration')
                     ->label('Duration')
                     ->options(array_combine(range(0, 7), range(0, 7)))
@@ -56,7 +56,9 @@ class ServiceResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('price')
-                    ->money()
+                    ->label('Price')
+                    ->formatStateUsing(fn ($state) => static::formatCurrency($state))
+                    ->alignEnd()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('duration')
                     ->numeric()
@@ -102,5 +104,14 @@ class ServiceResource extends Resource
             'create' => Pages\CreateService::route('/create'),
             'edit' => Pages\EditService::route('/{record}/edit'),
         ];
+    }
+
+    protected static function formatCurrency($value): string
+    {
+        if ($value === null) {
+            return 'Rp 0';
+        }
+
+        return 'Rp ' . number_format((float) $value, 0, ',', '.');
     }
 }
