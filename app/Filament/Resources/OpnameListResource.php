@@ -760,6 +760,7 @@ class OpnameListResource extends Resource
     public static function getPages(): array
     {
         return [
+            'calendar' => Pages\Calendar::route('/calendar'),
             'index' => Pages\ListOpnameLists::route('/'),
             'create' => Pages\CreateOpnameList::route('/create'),
             'edit' => Pages\EditOpnameList::route('/{record}/edit'),
