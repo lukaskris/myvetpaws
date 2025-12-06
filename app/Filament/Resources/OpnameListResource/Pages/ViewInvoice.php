@@ -101,4 +101,3 @@ class ViewInvoice extends ViewRecord
         );
     }
 }
-
