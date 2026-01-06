@@ -21,22 +21,15 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-dev --optimize-autoloader
 
-      - name: Deploy to server
-        uses: easingthemes/ssh-deploy@v4
-        with:
-          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
-          REMOTE_HOST: 72.61.143.83
-          REMOTE_USER: root
-          TARGET: /var/www/myvetpaws
-
       - name: Run deployment commands
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          password: ${{ secrets.VPS_PASSWORD }}
           script: |
             cd /var/www/myvetpaws
+            sudo git pull origin
             php artisan migrate --force
             php artisan config:cache
             php artisan route:cache
