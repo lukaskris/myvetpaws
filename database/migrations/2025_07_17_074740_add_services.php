@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('services', function (Blueprint $table) {
             if (!Schema::hasColumn('services', 'is_active')) {
-                $table->boolean('is_active')->default(true)->after('duration_type');
+                $table->boolean('is_active')->default(true);
             }
         });
     }
