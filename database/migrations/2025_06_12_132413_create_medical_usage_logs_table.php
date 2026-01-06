@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('clinic_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('medical_record_id')->constrained()->cascadeOnDelete();
             $table->string('item_type'); // service or medicine
             $table->string('item_name');
             $table->integer('quantity');
