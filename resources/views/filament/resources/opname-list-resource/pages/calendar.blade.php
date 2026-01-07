@@ -1,5 +1,6 @@
 <x-filament::page>
-    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 p-6 shadow-2xl">
+    <div class="h-screen w-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-950">
+        <div class="relative bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 p-6 shadow-2xl shrink-0">
         <div class="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
         <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
         <div class="absolute -left-10 -bottom-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
@@ -27,7 +28,7 @@
         </div>
     </div>
 
-    <x-filament::section class="mt-4 overflow-hidden shadow-xl">
+        <div class="flex-1 px-6 pb-6 overflow-y-auto">
         <x-slot name="heading">
             <div class="flex items-center gap-3">
                 <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xl shadow-lg">
@@ -37,7 +38,7 @@
             </div>
         </x-slot>
 
-        <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div class="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div class="flex items-center gap-2">
                 <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
                     🗓️
@@ -64,7 +65,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-7 gap-1.5 rounded-t-xl bg-gradient-to-b from-gray-100 via-gray-50 to-white px-3 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:from-gray-800 dark:via-gray-800/50 dark:to-gray-800 dark:text-gray-400 shadow-sm">
+        <div class="grid grid-cols-7 gap-1.5 rounded-t-xl bg-gradient-to-b from-white/80 via-white/60 to-white/40 backdrop-blur-sm px-3 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:from-gray-800 dark:via-gray-800/50 dark:to-gray-800 dark:text-gray-400 shadow-lg border-b-2 border-blue-200/30 dark:border-blue-700/30">
             @foreach (['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'] as $dayLabel)
                 <div class="text-center group cursor-default">
                     <span class="inline-block transition-transform duration-200 group-hover:scale-110">{{ $dayLabel }}</span>
@@ -72,7 +73,7 @@
             @endforeach
         </div>
 
-        <div class="space-y-1.5">
+        <div class="space-y-1.5 flex-1">
             @foreach ($calendarWeeks as $week)
                 <div class="grid grid-cols-7 gap-1.5">
                     @foreach ($week as $day)
@@ -81,7 +82,7 @@
                             $appointmentCount = count($day['appointments']);
                         @endphp
                         <div @class([
-                            'group relative min-h-[130px] rounded-xl border-2 bg-white p-2.5 text-xs transition-all duration-300 hover:shadow-xl dark:bg-gray-800/80 backdrop-blur-sm',
+                            'group relative min-h-[150px] rounded-xl border-2 bg-white/90 backdrop-blur-sm p-2.5 text-xs transition-all duration-300 hover:shadow-xl dark:bg-gray-800/90',
                             'border-blue-300 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-500/15 dark:via-indigo-500/15 dark:to-purple-500/15 hover:scale-[1.02] hover:shadow-2xl' => $hasAppointments,
                             'border-gray-200 opacity-40 dark:border-gray-700' => ! $day['is_current_month'],
                             'border-gray-200 hover:border-gray-300 hover:shadow-lg dark:border-gray-700 dark:hover:border-gray-600' => ! $hasAppointments && $day['is_current_month'],
@@ -134,6 +135,7 @@
                 </div>
             @endforeach
         </div>
-    </x-filament::section>
+        </div>
+    </div>
 </x-filament::page>
 
