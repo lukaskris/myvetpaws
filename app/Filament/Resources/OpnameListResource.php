@@ -87,7 +87,60 @@ class OpnameListResource extends Resource
                 Forms\Components\Section::make('Detail Information')
                     ->schema([
                         Forms\Components\Repeater::make('diagnoses')
-                            ->relationship('diagnoses')
+                            ->relationship('diagnoses', modifyQueryUsing: function (Builder $query): Builder {
+                                return $query->with(['details', 'details.medicineDetails', 'details.serviceDetails']);
+                            })
+                            ->afterStateHydrated(function (Forms\Components\Repeater $component): void {
+                                $records = $component->getCachedExistingRecords();
+                                if ($records->isEmpty()) {
+                                    return;
+                                }
+
+                                $items = [];
+
+                                foreach ($records as $key => $record) {
+                                    $itemData = $record->attributesToArray();
+
+                                    $diagnoseItems = [];
+                                    $medicineItems = [];
+                                    $serviceItems = [];
+
+                                    foreach ($record->details ?? [] as $detail) {
+                                        $section = $detail->detail_item_sections ?: 'diagnose';
+                                        $medicineDetail = $detail->medicineDetails->first();
+                                        $serviceDetail = $detail->serviceDetails->first();
+
+                                        $detailPayload = [
+                                            'detail_item_sections' => $section,
+                                            'name' => $detail->name,
+                                            'diagnosis_master_id' => $detail->diagnosis_master_id,
+                                            'type' => $detail->type,
+                                            'prognose' => $detail->prognose,
+                                            'notes' => $detail->notes,
+                                            'medicine_id' => $medicineDetail?->medicine_id,
+                                            'medicine_notes' => $medicineDetail?->notes,
+                                            'service_id' => $serviceDetail?->service_id,
+                                            'service_notes' => $serviceDetail?->notes,
+                                        ];
+
+                                        if ($section === 'medicine') {
+                                            $medicineItems[] = $detailPayload;
+                                        } elseif ($section === 'service') {
+                                            $serviceItems[] = $detailPayload;
+                                        } else {
+                                            $diagnoseItems[] = $detailPayload;
+                                        }
+                                    }
+
+                                    $itemData['diagnose_items'] = $diagnoseItems;
+                                    $itemData['medicine_items'] = $medicineItems;
+                                    $itemData['service_items'] = $serviceItems;
+
+                                    $items[$key] = $itemData;
+                                }
+
+                                $component->state($items);
+                            })
                             ->addActionLabel('Add Pet Detail')
                             ->addAction(function (Action $action) {
                                 return $action
@@ -198,6 +251,18 @@ class OpnameListResource extends Resource
                                     }
 
                                     $detail['detail_item_sections'] = $section;
+
+                                    if ($section === 'medicine') {
+                                        $medicineDetail = $detail['medicineDetails'][0] ?? [];
+                                        $detail['medicine_id'] = $medicineDetail['medicine_id'] ?? null;
+                                        $detail['medicine_notes'] = $medicineDetail['notes'] ?? null;
+                                    }
+
+                                    if ($section === 'service') {
+                                        $serviceDetail = $detail['serviceDetails'][0] ?? [];
+                                        $detail['service_id'] = $serviceDetail['service_id'] ?? null;
+                                        $detail['service_notes'] = $serviceDetail['notes'] ?? null;
+                                    }
 
                                     return $detail;
                                 }, array_values($data['details'] ?? []));
@@ -377,50 +442,38 @@ class OpnameListResource extends Resource
                                         Forms\Components\Hidden::make('name')
                                             ->default('Medicine Detail')
                                             ->dehydrated(),
-                                        Forms\Components\Repeater::make('medicineDetails')
-                                            ->label('Medicine Details')
-                                            ->defaultItems(1)
-                                            ->minItems(1)
-                                            ->maxItems(1)
-                                            ->disableItemCreation()
-                                            ->disableItemDeletion()
-                                            ->reorderable(false)
-                                            ->collapsible(false)
-                                            ->columns(2)
-                                            ->schema([
-                                                Forms\Components\Select::make('medicine_id')
-                                                    ->label('Medicine')
-                                                    ->options(fn () => Medicine::query()
-                                                        ->orderBy('name')
-                                                        ->pluck('name', 'id'))
-                                                    ->placeholder('Pilih Obat')
-                                                    ->reactive()
-                                                    ->searchable()
-                                                    ->preload()
-                                                    ->required()
-                                                    ->columnSpan(1),
-                                                Forms\Components\Placeholder::make('medicine_price_display')
-                                                    ->label('Price')
-                                                    ->columnSpan(1)
-                                                    ->content(function (Get $get) {
-                                                        $medicineId = $get('medicine_id');
-                                                        if (! $medicineId) {
-                                                            return static::formatCurrency(null);
-                                                        }
+                                        Forms\Components\Select::make('medicine_id')
+                                            ->label('Medicine')
+                                            ->options(fn () => Medicine::query()
+                                                ->orderBy('name')
+                                                ->pluck('name', 'id'))
+                                            ->placeholder('Pilih Obat')
+                                            ->reactive()
+                                            ->searchable()
+                                            ->preload()
+                                            ->required()
+                                            ->columnSpan(1),
+                                        Forms\Components\Placeholder::make('medicine_price_display')
+                                            ->label('Price')
+                                            ->columnSpan(1)
+                                            ->content(function (Get $get) {
+                                                $medicineId = $get('medicine_id');
+                                                if (! $medicineId) {
+                                                    return static::formatCurrency(null);
+                                                }
 
-                                                        $price = optional(Medicine::find($medicineId))->price;
+                                                $price = optional(Medicine::find($medicineId))->price;
 
-                                                        return static::formatCurrency($price);
-                                                    })
-                                                    ->visible(fn (Get $get) => filled($get('medicine_id'))),
-                                                Forms\Components\Textarea::make('notes')
-                                                    ->label('Notes')
-                                                    ->rows(3)
-                                                    ->columnSpan(1),
-                                            ])
+                                                return static::formatCurrency($price);
+                                            })
+                                            ->visible(fn (Get $get) => filled($get('medicine_id'))),
+                                        Forms\Components\Textarea::make('medicine_notes')
+                                            ->label('Notes')
+                                            ->rows(3)
+                                            ->columnSpan(1)
                                             ->helperText('Catatan obat untuk detail ini.'),
                                     ])
-                                    ->columns(1),
+                                    ->columns(2),
                             ])
                             ->headerActions([
                                 Action::make('addMedicineItem')
@@ -447,53 +500,41 @@ class OpnameListResource extends Resource
                                         Forms\Components\Hidden::make('name')
                                             ->default('Service Detail')
                                             ->dehydrated(),
-                                        Forms\Components\Repeater::make('serviceDetails')
-                                            ->label('Service Details')
-                                            ->defaultItems(1)
-                                            ->minItems(1)
-                                            ->maxItems(1)
-                                            ->disableItemCreation()
-                                            ->disableItemDeletion()
-                                            ->reorderable(false)
-                                            ->collapsible(false)
-                                            ->columns(2)
-                                            ->schema([
-                                                Forms\Components\Select::make('service_id')
-                                                    ->label('Service')
-                                                    ->options(fn () => Service::query()
-                                                        ->orderBy('name')
-                                                        ->pluck('name', 'id'))
-                                                    ->placeholder('Pilih Layanan')
-                                                    ->reactive()
-                                                    ->native(false)
-                                                    ->searchable()
-                                                    ->preload()
-                                                    ->required()
-                                                    ->dehydrated(true)
-                                                    ->live()
-                                                    ->columnSpan(1),
-                                                Forms\Components\Placeholder::make('service_price_display')
-                                                    ->label('Price')
-                                                    ->columnSpan(1)
-                                                    ->content(function (Get $get) {
-                                                        $serviceId = $get('service_id');
-                                                        if (! $serviceId) {
-                                                            return static::formatCurrency(null);
-                                                        }
+                                        Forms\Components\Select::make('service_id')
+                                            ->label('Service')
+                                            ->options(fn () => Service::query()
+                                                ->orderBy('name')
+                                                ->pluck('name', 'id'))
+                                            ->placeholder('Pilih Layanan')
+                                            ->reactive()
+                                            ->native(false)
+                                            ->searchable()
+                                            ->preload()
+                                            ->required()
+                                            ->dehydrated(true)
+                                            ->live()
+                                            ->columnSpan(1),
+                                        Forms\Components\Placeholder::make('service_price_display')
+                                            ->label('Price')
+                                            ->columnSpan(1)
+                                            ->content(function (Get $get) {
+                                                $serviceId = $get('service_id');
+                                                if (! $serviceId) {
+                                                    return static::formatCurrency(null);
+                                                }
 
-                                                        $price = optional(Service::find($serviceId))->price;
+                                                $price = optional(Service::find($serviceId))->price;
 
-                                                        return static::formatCurrency($price);
-                                                    })
-                                                    ->visible(fn (Get $get) => filled($get('service_id'))),
-                                                Forms\Components\Textarea::make('notes')
-                                                    ->label('Notes')
-                                                    ->rows(3)
-                                                    ->columnSpan(1),
-                                            ])
+                                                return static::formatCurrency($price);
+                                            })
+                                            ->visible(fn (Get $get) => filled($get('service_id'))),
+                                        Forms\Components\Textarea::make('service_notes')
+                                            ->label('Notes')
+                                            ->rows(3)
+                                            ->columnSpan(1)
                                             ->helperText('Detail ini berisi layanan yang dibutuhkan.'),
                                     ])
-                                    ->columns(1),
+                                    ->columns(2),
                             ])
                             ->headerActions([
                                 Action::make('addServiceItem')
@@ -577,8 +618,10 @@ class OpnameListResource extends Resource
         $items = $get($statePath) ?? [];
         $items[] = [
             'detail_item_sections' => $section,
-            'medicineDetails' => $section === 'medicine' ? [[]] : [],
-            'serviceDetails' => $section === 'service' ? [[]] : [],
+            'medicine_id' => null,
+            'medicine_notes' => null,
+            'service_id' => null,
+            'service_notes' => null,
         ];
         $set($statePath, $items);
     }
@@ -627,12 +670,22 @@ class OpnameListResource extends Resource
             }
             $detail['detail_item_sections'] = $section;
 
-            if ($section === 'medicine' && empty($detail['medicineDetails'])) {
-                $detail['medicineDetails'] = [[]];
+            if ($section === 'medicine') {
+                if (! empty($detail['medicine_id'])) {
+                    $detail['medicineDetails'] = [[
+                        'medicine_id' => $detail['medicine_id'],
+                        'notes' => $detail['medicine_notes'] ?? null,
+                    ]];
+                }
             }
 
-            if ($section === 'service' && empty($detail['serviceDetails'])) {
-                $detail['serviceDetails'] = [[]];
+            if ($section === 'service') {
+                if (! empty($detail['service_id'])) {
+                    $detail['serviceDetails'] = [[
+                        'service_id' => $detail['service_id'],
+                        'notes' => $detail['service_notes'] ?? null,
+                    ]];
+                }
             }
 
             // Ensure unrelated arrays are empty to prevent accidental saves
