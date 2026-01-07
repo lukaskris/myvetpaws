@@ -1,104 +1,97 @@
 <x-filament::widget>
-    <div class="h-screen w-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-950">
-        <div class="relative bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 px-6 py-4 overflow-hidden shrink-0">
-            <div class="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
-            <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
-            <div class="absolute -left-10 -bottom-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
-            <div class="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                    <h3 class="text-2xl font-bold text-white drop-shadow-lg">Kalender Janjian</h3>
-                    <p class="text-sm text-blue-100/90 backdrop-blur-sm">Kelola dan lihat semua appointment dengan mudah</p>
+    <div class="min-h-screen w-full flex flex-col bg-gradient-to-br from-slate-50 via-sky-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
+        <!-- Clean, Professional Header -->
+        <div class="bg-white/90 backdrop-blur border-b border-slate-200 px-6 py-5 shrink-0 shadow-sm dark:bg-slate-900/90 dark:border-slate-800">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between w-full">
+                <div class="flex-1">
+                    <h3 class="text-2xl font-semibold text-slate-800 tracking-tight dark:text-slate-100">Kalender Janjian</h3>
+                    <p class="text-sm text-slate-500 mt-1 dark:text-slate-300">Kelola dan lihat semua appointment dengan mudah</p>
                 </div>
-                <div class="flex flex-wrap gap-2">
-                    <x-filament::button color="white" size="sm" icon="heroicon-o-chevron-left" wire:click="goToPreviousMonth" class="shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <div class="flex gap-2">
+                    <x-filament::button color="gray" size="sm" icon="heroicon-o-chevron-left" wire:click="goToPreviousMonth">
                         
                     </x-filament::button>
-                    <x-filament::button color="white" size="sm" icon="heroicon-o-calendar" wire:click="goToToday" class="shadow-lg hover:shadow-xl transition-shadow duration-300">
+                    <x-filament::button color="primary" size="sm" icon="heroicon-o-calendar" wire:click="goToToday">
                         Hari Ini
                     </x-filament::button>
-                    <x-filament::button color="white" size="sm" icon="heroicon-o-chevron-right" wire:click="goToNextMonth" class="shadow-lg hover:shadow-xl transition-shadow duration-300">
+                    <x-filament::button color="gray" size="sm" icon="heroicon-o-chevron-right" wire:click="goToNextMonth">
                         
                     </x-filament::button>
                 </div>
             </div>
         </div>
 
-        <div class="flex-1 px-6 pb-6 overflow-y-auto">
-            <div class="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div class="flex items-center gap-2">
-                    <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
-                        🗓️
+        <!-- Main Calendar Content -->
+        <div class="flex-1 px-6 pb-6">
+            <!-- Month and Legend -->
+            <div class="my-6 w-full gap-4 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center">
+                <div class="flex items-center justify-center gap-3 lg:col-start-2 lg:justify-self-center">
+                    <div class="h-11 w-11 rounded-xl bg-slate-100 flex items-center justify-center text-sky-600 shadow-md dark:bg-slate-800 dark:text-sky-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
                     </div>
-                    <div class="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent dark:from-gray-100 dark:to-gray-300">
+                    <div class="text-2xl font-semibold text-slate-800 tracking-tight dark:text-slate-100 text-center">
                         {{ $calendarMonthLabel }}
                     </div>
                 </div>
-                <div class="flex flex-wrap items-center gap-3 text-xs">
-                    <span class="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 px-4 py-2 text-blue-700 dark:from-blue-500/20 dark:via-indigo-500/20 dark:to-purple-500/20 dark:text-blue-300 shadow-md border border-blue-200/50 dark:border-blue-500/30">
-                        <span class="relative flex h-3 w-3">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-3 w-3 bg-gradient-to-r from-blue-500 to-indigo-500"></span>
-                        </span>
-                        Tanggal Ada Janji
-                    </span>
-                    <span class="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-50 via-green-50 to-teal-50 px-4 py-2 text-emerald-700 dark:from-emerald-500/20 dark:via-green-500/20 dark:to-teal-500/20 dark:text-emerald-300 shadow-md border border-emerald-200/50 dark:border-emerald-500/30">
-                        <span class="relative flex h-3 w-3">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-3 w-3 bg-gradient-to-r from-emerald-500 to-green-500"></span>
-                        </span>
-                        Hari Ini
-                    </span>
-                </div>
             </div>
 
-            <div class="grid grid-cols-7 gap-1.5 rounded-t-xl bg-gradient-to-b from-white/80 via-white/60 to-white/40 backdrop-blur-sm px-3 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:from-gray-800 dark:via-gray-800/50 dark:to-gray-800 dark:text-gray-400 shadow-lg border-b-2 border-blue-200/30 dark:border-blue-700/30">
+            <!-- Day Headers -->
+            <div class="grid grid-cols-7 gap-2 rounded-t-xl  px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300 ">
                 @foreach (['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'] as $dayLabel)
-                    <div class="text-center group cursor-default">
-                        <span class="inline-block transition-transform duration-200 group-hover:scale-110">{{ $dayLabel }}</span>
+                    <div class="text-center">
+                        <span>{{ $dayLabel }}</span>
                     </div>
                 @endforeach
             </div>
 
-            <div class="space-y-1.5 flex-1">
+            <!-- Calendar Grid -->
+            <div class="space-y-2 flex-1 overflow-visible">
                 @foreach ($calendarWeeks as $week)
-                    <div class="grid grid-cols-7 gap-1.5">
+                    <div class="grid grid-cols-7 gap-2">
                         @foreach ($week as $day)
                             @php
                                 $hasAppointments = ! empty($day['appointments']);
                                 $appointmentCount = count($day['appointments']);
                             @endphp
                             <div @class([
-                                'group relative min-h-[150px] rounded-xl border-2 bg-white/90 backdrop-blur-sm p-2.5 text-xs transition-all duration-300 hover:shadow-xl dark:bg-gray-800/90',
-                                'border-blue-300 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-500/15 dark:via-indigo-500/15 dark:to-purple-500/15 hover:scale-[1.02] hover:shadow-2xl' => $hasAppointments,
-                                'border-gray-200 opacity-40 dark:border-gray-700' => ! $day['is_current_month'],
-                                'border-gray-200 hover:border-gray-300 hover:shadow-lg dark:border-gray-700 dark:hover:border-gray-600' => ! $hasAppointments && $day['is_current_month'],
-                                'border-emerald-400 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 dark:from-emerald-500/15 dark:via-green-500/15 dark:to-teal-500/15 ring-2 ring-emerald-400 ring-offset-2 dark:ring-offset-gray-900 shadow-lg' => $day['is_today'],
+                                'group relative min-h-[160px] rounded-xl border bg-white/95 p-3 text-xs transition-shadow duration-200 hover:shadow-md dark:bg-slate-900/85 dark:border-slate-700',
+                                'border-sky-300 bg-sky-50/60 hover:border-sky-400 dark:border-sky-500/60 dark:bg-sky-500/15' => $hasAppointments,
+                                'border-slate-200 bg-slate-50/70 text-slate-400 opacity-60 dark:bg-slate-900/60 dark:text-slate-500' => ! $day['is_current_month'],
+                                'border-slate-200 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700' => ! $hasAppointments && $day['is_current_month'],
+                                'border-emerald-400 bg-emerald-50 ring-2 ring-emerald-200 ring-offset-2 ring-offset-white shadow-sm dark:border-emerald-400/70 dark:bg-emerald-500/10 dark:ring-emerald-400/60 dark:ring-offset-slate-950' => $day['is_today'],
                             ])>
                                 <div class="flex items-center justify-between">
                                     <span @class([
-                                        'text-lg font-bold',
-                                        'text-gray-400 dark:text-gray-500' => ! $day['is_current_month'],
-                                        'text-gray-700 dark:text-gray-200' => $day['is_current_month'] && ! $day['is_today'],
+                                        'text-lg font-semibold',
+                                        'text-slate-400 dark:text-slate-500' => ! $day['is_current_month'],
+                                        'text-slate-700 dark:text-slate-200' => $day['is_current_month'] && ! $day['is_today'],
                                         'text-emerald-700 dark:text-emerald-300' => $day['is_today'],
                                     ])>{{ $day['day'] }}</span>
                                     @if ($appointmentCount > 0)
-                                        <span class="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 text-[10px] font-bold text-white shadow-md">
+                                        <span class="flex h-6 w-6 items-center justify-center rounded-full bg-sky-600 text-[10px] font-semibold text-white dark:bg-sky-500">
                                             {{ $appointmentCount }}
                                         </span>
                                     @endif
                                 </div>
 
-                                <div class="mt-2 space-y-1.5">
+                                <div class="mt-3 space-y-2 [content-visibility:auto] [contain-intrinsic-size:240px]">
                                     @forelse ($day['appointments'] as $appointment)
-                                        <div class="group/item relative rounded-lg border border-blue-200/60 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 px-2 py-1.5 text-[10px] leading-tight text-blue-900 shadow-md transition-all duration-300 hover:shadow-xl hover:scale-105 hover:border-blue-400 dark:from-blue-500/10 dark:via-indigo-500/10 dark:to-purple-500/10 dark:border-blue-500/40 dark:text-blue-100">
-                                            <div class="absolute inset-0 rounded-lg bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity duration-300"></div>
-                                            <div class="relative flex items-start gap-1.5">
-                                                <span class="mt-0.5 text-blue-500 drop-shadow-sm">📋</span>
+                                        <div class="group/item relative rounded-lg border border-sky-200 bg-white/90 px-2.5 py-2 text-[10px] leading-snug text-slate-700 shadow-sm transition-all duration-200 hover:shadow-md hover:border-sky-300 dark:bg-slate-900 dark:border-sky-500/30 dark:text-slate-200 dark:hover:border-sky-400/60">
+                                            <div class="flex items-start gap-2">
+                                                <span class="mt-0.5 text-sky-600 dark:text-sky-400">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                                    </svg>
+                                                </span>
                                                 <div class="flex-1 min-w-0">
-                                                    <p class="truncate font-bold text-[11px] text-blue-800 dark:text-blue-100">{{ $appointment['name'] }}</p>
+                                                    <p class="truncate font-semibold text-[11px] text-slate-800 dark:text-slate-100">{{ $appointment['name'] }}</p>
                                                     @if (! empty($appointment['owner']))
-                                                        <p class="truncate text-[10px] text-blue-700/80 dark:text-blue-200/80 flex items-center gap-1">
-                                                            <span>👤</span>
+                                                        <p class="truncate text-[10px] text-slate-500 flex items-center gap-1 mt-0.5 dark:text-slate-300">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                                            </svg>
                                                             {{ $appointment['owner'] }}
                                                         </p>
                                                     @endif
@@ -107,9 +100,11 @@
                                         </div>
                                     @empty
                                         @if ($day['is_current_month'])
-                                            <div class="flex items-center justify-center py-3">
-                                                <p class="text-[10px] italic text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
-                                                    <span class="text-gray-300 dark:text-gray-600">📭</span>
+                                            <div class="flex items-center justify-center py-6">
+                                                <p class="text-[10px] italic text-slate-400 flex items-center gap-1.5 dark:text-slate-400">
+                                                    <svg class="w-4 h-4 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                                    </svg>
                                                     Tiada janji
                                                 </p>
                                             </div>
@@ -124,4 +119,3 @@
         </div>
     </div>
 </x-filament::widget>
-
