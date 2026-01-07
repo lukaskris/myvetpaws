@@ -9,5 +9,46 @@
     background-color: #f8fafc !important;
 }
 
+.detail-section {
+    background-color: #111111;
+    border: 1px solid #ffffff;
+    border-radius: 28px;
+    padding: 16px;
+}
+
+.detail-section .fi-section-header,
+.detail-section .fi-section-header-heading {
+    color: #ffffff;
+}
+
+.detail-section .fi-section-header {
+    background-color: transparent;
+}
+
+.detail-section .fi-section-header-actions .fi-btn {
+    background-color: transparent;
+    border: 1px solid #ffffff;
+    color: #ffffff;
+}
+
+.detail-section .fi-fo-repeater-item {
+    background-color: transparent;
+    border: 1px solid #ffffff;
+    box-shadow: none;
+}
+
+.detail-section .fi-fo-repeater-item-header,
+.detail-section .fi-fo-repeater-item-content {
+    background-color: transparent;
+}
+
+.detail-section .fi-fo-repeater-item-header h4 {
+    color: #ffffff;
+}
+
+.detail-section .fi-fo-repeater-item-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 
 /* Removed problematic @apply usage */

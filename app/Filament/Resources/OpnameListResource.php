@@ -164,6 +164,10 @@ class OpnameListResource extends Resource
                             })
                             ->helperText('Klik Add untuk menambah detail lain pada pet yang sama atau pilih banyak pet sekaligus.')
                             ->mutateRelationshipDataBeforeFillUsing(function (array $data): array {
+                                $diagnoseItems = [];
+                                $medicineItems = [];
+                                $serviceItems = [];
+
                                 $details = array_map(function (array $detail): array {
                                     $detail['medicineDetails'] = array_values($detail['medicineDetails'] ?? []);
                                     $detail['serviceDetails'] = array_values($detail['serviceDetails'] ?? []);
@@ -198,7 +202,21 @@ class OpnameListResource extends Resource
                                     return $detail;
                                 }, array_values($data['details'] ?? []));
 
-                                $data['details'] = $details;
+                                foreach ($details as $detail) {
+                                    $section = $detail['detail_item_sections'] ?? 'diagnose';
+                                    if ($section === 'medicine') {
+                                        $medicineItems[] = $detail;
+                                    } elseif ($section === 'service') {
+                                        $serviceItems[] = $detail;
+                                    } else {
+                                        $diagnoseItems[] = $detail;
+                                    }
+                                }
+
+                                $data['diagnose_items'] = $diagnoseItems;
+                                $data['medicine_items'] = $medicineItems;
+                                $data['service_items'] = $serviceItems;
+                                unset($data['details']);
 
                                 return $data;
                             })
@@ -250,270 +268,246 @@ class OpnameListResource extends Resource
                                             ->minValue(0)
                                             ->maxValue(7)
                                             ->default(0),
-                                        Forms\Components\Placeholder::make('pet_history_preview')
-                                            ->label('Riwayat Pet (3 Terakhir)')
-                                            ->columnSpan(2)
-                                            ->visible(fn (Get $get) => filled($get('pet_id')))
-                                            ->content(fn (Get $get) => static::renderPetHistory($get('pet_id'))),
-                                    ]),
-                                Forms\Components\Repeater::make('details')
-                                    ->label('Detail Items')
-                                    ->relationship('details')
-                                    ->itemLabel(fn (array $state): string => match ($state['detail_item_sections'] ?? null) {
-                                        'diagnose' => 'Diagnose',
-                                        'medicine' => 'Medicine',
-                                        'service'  => 'Service',
-                                        default    => 'Detail',
-                                    })
-                                    ->createItemButtonLabel('Add Detail')
+                                Forms\Components\Placeholder::make('pet_history_preview')
+                                    ->label('Riwayat Pet (3 Terakhir)')
+                                    ->columnSpan(2)
+                                    ->visible(fn (Get $get) => filled($get('pet_id')))
+                                    ->content(fn (Get $get) => static::renderPetHistory($get('pet_id'))),
+                            ]),
+                        Forms\Components\Section::make('Diagnose')
+                            ->schema([
+                                Forms\Components\Repeater::make('diagnose_items')
+                                    ->label('')
                                     ->defaultItems(0)
                                     ->minItems(0)
-                                    ->collapsed(false)
+                                    ->addable(false)
+                                    ->itemLabel('Diagnose')
+                                    ->itemNumbers()
                                     ->schema([
-                                        Forms\Components\Select::make('detail_item_sections')
-                                            ->label('Detail Type')
-                                            ->options([
-                                                'diagnose' => 'Diagnose',
-                                                'medicine' => 'Medicine',
-                                                'service' => 'Service',
+                                        Forms\Components\Hidden::make('detail_item_sections')
+                                            ->default('diagnose')
+                                            ->dehydrated(),
+                                        Forms\Components\Hidden::make('name')
+                                            ->default('Diagnose')
+                                            ->dehydrated(),
+                                        Forms\Components\Select::make('diagnosis_master_id')
+                                            ->label('Diagnose')
+                                            ->options(fn () => DiagnosisMaster::query()
+                                                ->orderBy('name')
+                                                ->pluck('name', 'id'))
+                                            ->placeholder('Pilih Diagnose')
+                                            ->searchable()
+                                            ->preload()
+                                            ->createOptionForm([
+                                                Forms\Components\TextInput::make('name')
+                                                    ->label('Nama Diagnose')
+                                                    ->required(),
+                                                Forms\Components\Textarea::make('notes')
+                                                    ->label('Catatan')
+                                                    ->rows(3),
                                             ])
-                                            ->placeholder('Pilih tipe detail')
-                                            ->required()
-                                            ->native(false)
+                                            ->createOptionUsing(function (array $data): int {
+                                                $diagnosis = DiagnosisMaster::create([
+                                                    'name' => $data['name'],
+                                                    'notes' => $data['notes'] ?? null,
+                                                ]);
+
+                                                return $diagnosis->getKey();
+                                            })
+                                            ->createOptionAction(function (Action $action) {
+                                                return $action
+                                                    ->modalHeading('Tambah Diagnose')
+                                                    ->modalSubmitActionLabel('Simpan Diagnose')
+                                                    ->modalCancelActionLabel('Batal');
+                                            })
                                             ->reactive()
-                                            ->afterStateHydrated(function ($state, Set $set, Get $get) {
-                                                // When editing old data, the section may be missing.
-                                                // Infer it from existing nested details, or default to 'diagnose'.
-                                                if ($state === null || $state === '') {
-                                                    $hasMedicine = ! empty($get('medicineDetails'));
-                                                    $hasService = ! empty($get('serviceDetails'));
-
-                                                    if ($hasMedicine && ! $hasService) {
-                                                        $set('detail_item_sections', 'medicine');
-                                                        if (empty($get('medicineDetails'))) {
-                                                            $set('medicineDetails', [[]]);
-                                                        }
-                                                        $set('serviceDetails', []);
-                                                    } elseif (! $hasMedicine && $hasService) {
-                                                        $set('detail_item_sections', 'service');
-                                                        if (empty($get('serviceDetails'))) {
-                                                            $set('serviceDetails', [[]]);
-                                                        }
-                                                        $set('medicineDetails', []);
-                                                    } else {
-                                                        // Default to diagnose when ambiguous or empty
-                                                        $set('detail_item_sections', 'diagnose');
-                                                        $set('medicineDetails', []);
-                                                        $set('serviceDetails', []);
-                                                    }
-                                                    return; // Done initializing
-                                                }
-
-                                                // Keep nested arrays consistent with the chosen section
-                                                if ($state === 'medicine' && empty($get('medicineDetails'))) {
-                                                    $set('medicineDetails', [[]]);
-                                                    $set('serviceDetails', []);
-                                                } elseif ($state === 'service' && empty($get('serviceDetails'))) {
-                                                    $set('serviceDetails', [[]]);
-                                                    $set('medicineDetails', []);
-                                                } elseif ($state === 'diagnose') {
-                                                    $set('medicineDetails', []);
-                                                    $set('serviceDetails', []);
+                                            ->afterStateHydrated(function (?int $state, Set $set): void {
+                                                if ($state) {
+                                                    $set('name', optional(DiagnosisMaster::find($state))->name);
                                                 }
                                             })
-                                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                                if ($state === 'medicine') {
-                                                    if (empty($get('medicineDetails'))) {
-                                                        $set('medicineDetails', [[]]);
-                                                    }
-                                                    $set('serviceDetails', []);
-                                                } elseif ($state === 'service') {
-                                                    if (empty($get('serviceDetails'))) {
-                                                        $set('serviceDetails', [[]]);
-                                                    }
-                                                    $set('medicineDetails', []);
-                                                } else {
-                                                    $set('medicineDetails', []);
-                                                    $set('serviceDetails', []);
-                                                }
+                                            ->afterStateUpdated(function (?int $state, Set $set): void {
+                                                $set('name', $state ? optional(DiagnosisMaster::find($state))->name : null);
                                             }),
 
-                                        Forms\Components\Group::make([
-                                            Forms\Components\Hidden::make('name')
-                                                ->default('Diagnose')
-                                                ->dehydrated(),
-                                        Forms\Components\Placeholder::make('diagnose_heading')
-                                            ->content('Diagnose Details')
-                                            ->hidden(),
-                                            Forms\Components\Select::make('diagnosis_master_id')
-                                                ->label('Diagnose')
-                                                ->options(fn () => DiagnosisMaster::query()
-                                                    ->orderBy('name')
-                                                    ->pluck('name', 'id'))
-                                                ->placeholder('Pilih Diagnose')
-                                                ->searchable()
-                                                ->preload()
-                                                ->createOptionForm([
-                                                    Forms\Components\TextInput::make('name')
-                                                        ->label('Nama Diagnose')
-                                                        ->required(),
-                                                    Forms\Components\Textarea::make('notes')
-                                                        ->label('Catatan')
-                                                        ->rows(3),
-                                                ])
-                                                ->createOptionUsing(function (array $data): int {
-                                                    $diagnosis = DiagnosisMaster::create([
-                                                        'name' => $data['name'],
-                                                        'notes' => $data['notes'] ?? null,
-                                                    ]);
-
-                                                    return $diagnosis->getKey();
-                                                })
-                                                ->createOptionAction(function (Action $action) {
-                                                    return $action
-                                                        ->modalHeading('Tambah Diagnose')
-                                                        ->modalSubmitActionLabel('Simpan Diagnose')
-                                                        ->modalCancelActionLabel('Batal');
-                                                })
-                                                ->reactive()
-                                                ->visible(fn (Get $get) => self::shouldShowDetailSection($get, 'diagnose'))
-                                                ->required(fn (Get $get) => self::shouldShowDetailSection($get, 'diagnose'))
-                                                ->afterStateHydrated(function (?int $state, Set $set): void {
-                                                    if ($state) {
-                                                        $set('name', optional(DiagnosisMaster::find($state))->name);
-                                                    }
-                                                })
-                                                ->afterStateUpdated(function (?int $state, Set $set): void {
-                                                    $set('name', $state ? optional(DiagnosisMaster::find($state))->name : null);
-                                                }),
-
-                                            Forms\Components\Select::make('type')
-                                                ->label('Type')
-                                                ->options([
-                                                    'Primary' => 'Primary',
-                                                    'Differential' => 'Differential',
-                                                ])
-                                                ->default('Primary')
-                                            ->required(fn (Get $get) => self::shouldShowDetailSection($get, 'diagnose'))
-                                            ->visible(fn (Get $get) => self::shouldShowDetailSection($get, 'diagnose')),
-                                            Forms\Components\Radio::make('prognose')
-                                                ->label('Prognose')
-                                                ->options([
-                                                    'Fausta' => 'Fausta',
-                                                    'Dubius' => 'Dubius',
-                                                    'Infausta' => 'Infausta',
-                                                ])
-                                                ->default('Fausta')
-                                                ->inline()
-                                            ->required(fn (Get $get) => self::shouldShowDetailSection($get, 'diagnose'))
-                                            ->visible(fn (Get $get) => self::shouldShowDetailSection($get, 'diagnose')),
-                                            Forms\Components\Textarea::make('notes')
-                                                ->label('Appointment Notes')
-                                                ->rows(2)
-                                                ->visible(fn (Get $get) => self::shouldShowDetailSection($get, 'diagnose')),
-                                        ])
+                                        Forms\Components\Select::make('type')
+                                            ->label('Type')
+                                            ->options([
+                                                'Primary' => 'Primary',
+                                                'Differential' => 'Differential',
+                                            ])
+                                            ->default('Primary'),
+                                        Forms\Components\Radio::make('prognose')
+                                            ->label('Prognose')
+                                            ->options([
+                                                'Fausta' => 'Fausta',
+                                                'Dubius' => 'Dubius',
+                                                'Infausta' => 'Infausta',
+                                            ])
+                                            ->default('Fausta')
+                                            ->inline(),
+                                        Forms\Components\Textarea::make('notes')
+                                            ->label('Appointment Notes')
+                                            ->rows(2),
+                                    ])
+                                    ->columns(2),
+                            ])
+                            ->headerActions([
+                                Action::make('addDiagnoseItem')
+                                    ->icon('heroicon-o-plus-circle')
+                                    ->label('')
+                                    ->action(fn (Get $get, Set $set) => static::appendSectionItem($get, $set, 'diagnose_items', 'diagnose')),
+                            ])
+                            ->extraAttributes([
+                                'class' => 'detail-section detail-section--dark',
+                            ]),
+                        Forms\Components\Section::make('Medicine')
+                            ->schema([
+                                Forms\Components\Repeater::make('medicine_items')
+                                    ->label('')
+                                    ->defaultItems(0)
+                                    ->minItems(0)
+                                    ->addable(false)
+                                    ->itemLabel('Medicine')
+                                    ->itemNumbers()
+                                    ->schema([
+                                        Forms\Components\Hidden::make('detail_item_sections')
+                                            ->default('medicine')
+                                            ->dehydrated(),
+                                        Forms\Components\Hidden::make('name')
+                                            ->default('Medicine Detail')
+                                            ->dehydrated(),
+                                        Forms\Components\Repeater::make('medicineDetails')
+                                            ->label('Medicine Details')
+                                            ->defaultItems(1)
+                                            ->minItems(1)
+                                            ->maxItems(1)
+                                            ->disableItemCreation()
+                                            ->disableItemDeletion()
+                                            ->reorderable(false)
+                                            ->collapsible(false)
                                             ->columns(2)
-                                            ->visible(fn (Get $get) => self::shouldShowDetailSection($get, 'diagnose')),
-                                        Forms\Components\Group::make([
-                                            Forms\Components\Repeater::make('medicineDetails')
-                                                ->label('Medicine Details')
-                                                ->relationship('medicineDetails')
-                                                ->defaultItems(1)
-                                                ->minItems(1)
-                                                ->maxItems(1)
-                                                ->disableItemCreation()
-                                                ->disableItemDeletion()
-                                                ->reorderable(false)
-                                                ->collapsible(false)
-                                                ->dehydrated(fn (Get $get) => self::shouldShowDetailSection($get, 'medicine'))
-                                                ->columns(2)
-                                                ->schema([
-                                                    Forms\Components\Select::make('medicine_id')
-                                                        ->label('Medicine')
-                                                        ->options(fn () => Medicine::query()
-                                                            ->orderBy('name')
-                                                            ->pluck('name', 'id'))
-                                                        ->placeholder('Pilih Obat')
-                                                        ->reactive()
-                                                        ->searchable()
-                                                        ->preload()
-                                                        ->required()
-                                                        ->columnSpan(1),
-                                                    Forms\Components\Placeholder::make('medicine_price_display')
-                                                        ->label('Price')
-                                                        ->columnSpan(1)
-                                                        ->content(function (Get $get) {
-                                                            $medicineId = $get('medicine_id');
-                                                            if (! $medicineId) {
-                                                                return static::formatCurrency(null);
-                                                            }
+                                            ->schema([
+                                                Forms\Components\Select::make('medicine_id')
+                                                    ->label('Medicine')
+                                                    ->options(fn () => Medicine::query()
+                                                        ->orderBy('name')
+                                                        ->pluck('name', 'id'))
+                                                    ->placeholder('Pilih Obat')
+                                                    ->reactive()
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->required()
+                                                    ->columnSpan(1),
+                                                Forms\Components\Placeholder::make('medicine_price_display')
+                                                    ->label('Price')
+                                                    ->columnSpan(1)
+                                                    ->content(function (Get $get) {
+                                                        $medicineId = $get('medicine_id');
+                                                        if (! $medicineId) {
+                                                            return static::formatCurrency(null);
+                                                        }
 
-                                                            $price = optional(Medicine::find($medicineId))->price;
+                                                        $price = optional(Medicine::find($medicineId))->price;
 
-                                                            return static::formatCurrency($price);
-                                                        })
-                                                        ->visible(fn (Get $get) => filled($get('medicine_id'))),
-                                                    Forms\Components\Textarea::make('notes')
-                                                        ->label('Notes')
-                                                        ->rows(3)
-                                                        ->columnSpan(1),
-                                                ])
-                                                ->helperText('Catatan obat untuk detail ini.'),
-                                        ])
-                                            ->visible(fn (Get $get) => self::shouldShowDetailSection($get, 'medicine')),
-                                        Forms\Components\Group::make([
-                                            Forms\Components\Repeater::make('serviceDetails')
-                                                ->label('Service Details')
-                                                ->relationship('serviceDetails')
-                                                ->defaultItems(1)
-                                                ->minItems(1)
-                                                ->maxItems(1)
-                                                ->disableItemCreation()
-                                                ->disableItemDeletion()
-                                                ->reorderable(false)
-                                                ->collapsible(false)
-                                                ->dehydrated(fn (Get $get) => self::shouldShowDetailSection($get, 'service'))
-                                                ->columns(2)
-                                                ->schema([
-                                                    Forms\Components\Select::make('service_id')
-                                                        ->label('Service')
-                                                        ->options(fn () => Service::query()
-                                                            ->orderBy('name')
-                                                            ->pluck('name', 'id'))
-                                                        ->placeholder('Pilih Layanan')
-                                                        ->reactive()
-                                                        ->native(false)
-                                                        ->searchable()
-                                                        ->preload()
-                                                        // Important: use relative lookup, we're inside serviceDetails.* item
-                                                        ->required(fn (Get $get) => ($get('../detail_item_sections') === 'service'))
-                                                        ->dehydrated(true)
-                                                        ->live()
-                                                        ->columnSpan(1),
-                                                    Forms\Components\Placeholder::make('service_price_display')
-                                                        ->label('Price')
-                                                        ->columnSpan(1)
-                                                        ->content(function (Get $get) {
-                                                            $serviceId = $get('service_id');
-                                                            if (! $serviceId) {
-                                                                return static::formatCurrency(null);
-                                                            }
-
-                                                            $price = optional(Service::find($serviceId))->price;
-
-                                                            return static::formatCurrency($price);
-                                                        })
-                                                        ->visible(fn (Get $get) => filled($get('service_id'))),
-                                                    Forms\Components\Textarea::make('notes')
-                                                        ->label('Notes')
-                                                        ->rows(3)
-                                                        ->columnSpan(1),
-                                                ])
-                                                ->helperText('Detail ini berisi layanan yang dibutuhkan.'),
-                                        ])
-                                            ->visible(fn (Get $get) => self::shouldShowDetailSection($get, 'service')),
+                                                        return static::formatCurrency($price);
+                                                    })
+                                                    ->visible(fn (Get $get) => filled($get('medicine_id'))),
+                                                Forms\Components\Textarea::make('notes')
+                                                    ->label('Notes')
+                                                    ->rows(3)
+                                                    ->columnSpan(1),
+                                            ])
+                                            ->helperText('Catatan obat untuk detail ini.'),
                                     ])
                                     ->columns(1),
+                            ])
+                            ->headerActions([
+                                Action::make('addMedicineItem')
+                                    ->icon('heroicon-o-plus-circle')
+                                    ->label('')
+                                    ->action(fn (Get $get, Set $set) => static::appendSectionItem($get, $set, 'medicine_items', 'medicine')),
+                            ])
+                            ->extraAttributes([
+                                'class' => 'detail-section detail-section--dark',
+                            ]),
+                        Forms\Components\Section::make('Service')
+                            ->schema([
+                                Forms\Components\Repeater::make('service_items')
+                                    ->label('')
+                                    ->defaultItems(0)
+                                    ->minItems(0)
+                                    ->addable(false)
+                                    ->itemLabel('Service')
+                                    ->itemNumbers()
+                                    ->schema([
+                                        Forms\Components\Hidden::make('detail_item_sections')
+                                            ->default('service')
+                                            ->dehydrated(),
+                                        Forms\Components\Hidden::make('name')
+                                            ->default('Service Detail')
+                                            ->dehydrated(),
+                                        Forms\Components\Repeater::make('serviceDetails')
+                                            ->label('Service Details')
+                                            ->defaultItems(1)
+                                            ->minItems(1)
+                                            ->maxItems(1)
+                                            ->disableItemCreation()
+                                            ->disableItemDeletion()
+                                            ->reorderable(false)
+                                            ->collapsible(false)
+                                            ->columns(2)
+                                            ->schema([
+                                                Forms\Components\Select::make('service_id')
+                                                    ->label('Service')
+                                                    ->options(fn () => Service::query()
+                                                        ->orderBy('name')
+                                                        ->pluck('name', 'id'))
+                                                    ->placeholder('Pilih Layanan')
+                                                    ->reactive()
+                                                    ->native(false)
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->required()
+                                                    ->dehydrated(true)
+                                                    ->live()
+                                                    ->columnSpan(1),
+                                                Forms\Components\Placeholder::make('service_price_display')
+                                                    ->label('Price')
+                                                    ->columnSpan(1)
+                                                    ->content(function (Get $get) {
+                                                        $serviceId = $get('service_id');
+                                                        if (! $serviceId) {
+                                                            return static::formatCurrency(null);
+                                                        }
+
+                                                        $price = optional(Service::find($serviceId))->price;
+
+                                                        return static::formatCurrency($price);
+                                                    })
+                                                    ->visible(fn (Get $get) => filled($get('service_id'))),
+                                                Forms\Components\Textarea::make('notes')
+                                                    ->label('Notes')
+                                                    ->rows(3)
+                                                    ->columnSpan(1),
+                                            ])
+                                            ->helperText('Detail ini berisi layanan yang dibutuhkan.'),
+                                    ])
+                                    ->columns(1),
+                            ])
+                            ->headerActions([
+                                Action::make('addServiceItem')
+                                    ->icon('heroicon-o-plus-circle')
+                                    ->label('')
+                                    ->action(fn (Get $get, Set $set) => static::appendSectionItem($get, $set, 'service_items', 'service')),
+                            ])
+                            ->extraAttributes([
+                                'class' => 'detail-section detail-section--dark',
+                            ]),
+                        Forms\Components\Repeater::make('details')
+                            ->relationship('details')
+                            ->schema([])
+                            ->visible(false),
                             ])
                             ->columns(1)
                     ])
@@ -578,13 +572,15 @@ class OpnameListResource extends Resource
         return new HtmlString('<ul class="list-disc list-inside space-y-2">' . $items . '</ul>');
     }
 
-    protected static function shouldShowDetailSection(Get $get, string $section): bool
+    protected static function appendSectionItem(Get $get, Set $set, string $statePath, string $section): void
     {
-        $current = $get('detail_item_sections');
-        if ($current === null || $current === '') {
-            $current = 'diagnose';
-        }
-        return $current === $section;
+        $items = $get($statePath) ?? [];
+        $items[] = [
+            'detail_item_sections' => $section,
+            'medicineDetails' => $section === 'medicine' ? [[]] : [],
+            'serviceDetails' => $section === 'service' ? [[]] : [],
+        ];
+        $set($statePath, $items);
     }
 
     protected static function formatCurrency($value): string
@@ -598,6 +594,13 @@ class OpnameListResource extends Resource
 
     protected static function normalizeDiagnosePayload(array $data): array
     {
+        $rawDetails = array_merge(
+            array_values($data['diagnose_items'] ?? []),
+            array_values($data['medicine_items'] ?? []),
+            array_values($data['service_items'] ?? []),
+            array_values($data['details'] ?? [])
+        );
+
         $details = array_map(function (array $detail): array {
             $detail['medicineDetails'] = collect($detail['medicineDetails'] ?? [])
                 ->filter(fn ($row) => ! empty(data_get($row, 'medicine_id')))
@@ -686,9 +689,10 @@ class OpnameListResource extends Resource
             $detail['notes'] = $detail['notes'] ?? null;
 
             return $detail;
-        }, array_values($data['details'] ?? []));
+        }, $rawDetails);
 
         $data['details'] = $details;
+        unset($data['diagnose_items'], $data['medicine_items'], $data['service_items']);
 
         $firstDetail = $details[0] ?? null;
 
@@ -717,9 +721,6 @@ class OpnameListResource extends Resource
                     ->label('Discount')
                     ->money('IDR')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('pets_count')
-                    ->label('Number of Pets')
-                    ->counts('pets'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
