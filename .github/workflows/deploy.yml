@@ -23,41 +23,13 @@ jobs:
       - name: Install Node dependencies
         run: npm install
 
-      - name: Compile Tailwind CSS
-        run: npm run build
-
-      - name: Setup SSH Key
+      - name: Install sshpass and rsync
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          sudo apt-get update
+          sudo apt-get install -y sshpass rsync
 
-      - name: Sync files to production via Rsync
+      - name: Run Deploy Script
+        env:
+          SSH_PASS: ${{ secrets.SSH_PASS }}
         run: |
-          rsync -avz --delete \
-            --exclude=".git" \
-            --exclude=".github" \
-            --exclude="node_modules" \
-            --exclude="tests" \
-            --exclude="scratch" \
-            --exclude=".env" \
-            --exclude="database/data" \
-            --exclude="writable/cache/*" \
-            --exclude="writable/logs/*" \
-            --exclude="writable/sessions/*" \
-            --exclude="writable/debugbar/*" \
-            --exclude="writable/uploads/*" \
-            --exclude="vendor" \
-            -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
-            ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/var/www/myvetpaws/
-
-      - name: Execute post-deployment commands on server
-        run: |
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-            cd /var/www/myvetpaws
-            composer install --no-dev --optimize-autoloader
-            php spark migrate
-            chown -R www-data:www-data /var/www/myvetpaws
-            chmod -R 775 /var/www/myvetpaws/writable
-          "
+          bash scratch/deploy.sh
