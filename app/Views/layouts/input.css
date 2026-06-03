@@ -1,0 +1,288 @@
+@import "tailwindcss";
+@source "../..";
+
+:root {
+  color-scheme: light;
+  
+  /* Light Theme Variables */
+  --bg-app: #f1f5f9;        /* slate-100 backdrop */
+  --bg-card: #ffffff;       /* white card */
+  --bg-subtle: #e2e8f0;     /* slate-200 */
+  --border-light: #cbd5e1;  /* slate-300 */
+  --border-strong: #94a3b8; /* slate-400 */
+  
+  --text-main: #0f172a;     /* slate-900 */
+  --text-muted: #334155;    /* slate-800 */
+  --text-subtle: #475569;   /* slate-600 */
+  
+  --cosmic-glow-radial: radial-gradient(circle at top, rgba(99, 102, 241, 0.04), transparent 60%);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --panel-glow-shadow: rgba(99, 102, 241, 0.02);
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Dark Theme Variables (Cosmic Obsidian) */
+  --bg-app: #070709;        /* obsidian-950 */
+  --bg-card: #0c0d12;       /* obsidian-900 */
+  --bg-subtle: #12141a;     /* obsidian-850 */
+  --border-light: #181a22;  /* obsidian-800 */
+  --border-strong: #252834; /* obsidian-700 */
+  
+  --text-main: #f1f5f9;     /* slate-100 */
+  --text-muted: #cbd5e1;    /* slate-300 */
+  --text-subtle: #94a3b8;   /* slate-400 */
+  
+  --cosmic-glow-radial: radial-gradient(circle at top, rgba(99, 102, 241, 0.12), transparent 60%);
+  --glass-bg: rgba(12, 13, 18, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.05);
+  --panel-glow-shadow: rgba(99, 102, 241, 0.08);
+  --scrollbar-track: #070709;
+  --scrollbar-thumb: #181a22;
+}
+
+@theme {
+  /* Brand Palette (Electric Indigo) stays consistent across themes */
+  --color-brand-50: #fafafa;
+  --color-brand-100: #f5f5f5;
+  --color-brand-200: #e5e5e5;
+  --color-brand-300: #d4d4d4;
+  --color-brand-400: #a3a3a3;
+  --color-brand-500: #818cf8;
+  --color-brand-600: #6366f1;
+  --color-brand-700: #4f46e5;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #1e1b4b;
+  --color-brand-950: #0f172a;
+
+  /* Neon accents stay consistent */
+  --color-neon-violet: #a855f7;
+  --color-neon-purple: #c084fc;
+  --color-neon-pink: #ec4899;
+  --color-neon-cyan: #06b6d4;
+  --color-neon-emerald: #10b981;
+  --color-neon-amber: #f59e0b;
+
+  /* Obsidian background colors mapped to theme variables */
+  --color-obsidian-950: var(--bg-app);
+  --color-obsidian-900: var(--bg-card);
+  --color-obsidian-850: var(--bg-subtle);
+  --color-obsidian-800: var(--border-light);
+  --color-obsidian-700: var(--border-strong);
+
+  /* Neutral background colors mapped to theme variables */
+  --color-neutral-950: var(--bg-app);
+  --color-neutral-900: var(--bg-card);
+  --color-neutral-850: var(--bg-subtle);
+  --color-neutral-800: var(--border-light);
+  --color-neutral-700: var(--border-strong);
+
+  /* Neutral text colors mapped to theme variables in light/dark mode */
+  --color-neutral-50: var(--text-main);
+  --color-neutral-100: var(--text-main);
+  --color-neutral-200: var(--text-muted);
+  --color-neutral-300: var(--text-muted);
+  --color-neutral-350: var(--text-muted);
+  --color-neutral-400: var(--text-subtle);
+  --color-neutral-450: var(--text-subtle);
+  --color-neutral-500: var(--text-subtle);
+
+  /* Slate text colors mapped to theme variables */
+  --color-slate-50: var(--text-main);
+  --color-slate-100: var(--text-main);
+  --color-slate-200: var(--text-muted);
+  --color-slate-300: var(--text-muted);
+  --color-slate-350: var(--text-muted);
+  --color-slate-400: var(--text-subtle);
+  --color-slate-450: var(--text-subtle);
+  --color-slate-500: var(--text-subtle);
+}
+
+@variant dark (&:where(.dark, .dark *));
+
+@layer utilities {
+    /* Glassmorphism utility classes */
+    .glass-panel {
+        background-color: var(--glass-bg);
+        backdrop-filter: blur(16px) saturate(180%);
+        -webkit-backdrop-filter: blur(16px) saturate(180%);
+        border: 1px solid var(--glass-border);
+    }
+    
+    .glass-panel-glow {
+        background-color: var(--glass-bg);
+        backdrop-filter: blur(16px) saturate(180%);
+        -webkit-backdrop-filter: blur(16px) saturate(180%);
+        border: 1px solid rgba(99, 102, 241, 0.25);
+        box-shadow: 0 8px 32px 0 var(--panel-glow-shadow);
+    }
+
+    /* Ambient background glows */
+    .bg-cosmic-glow {
+        background-image: var(--cosmic-glow-radial);
+    }
+    
+    .bg-emerald-glow {
+        background-image: radial-gradient(circle at top, rgba(16, 185, 129, 0.08), transparent 60%);
+    }
+
+    /* Tactile transitions */
+    .transition-premium {
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+}
+
+/* Custom premium scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #6366f1;
+}
+
+/* Base resets */
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* In light mode, override explicit text-white on generic labels to keep contrast */
+html:not(.dark) .text-white {
+  color: var(--text-main) !important;
+}
+
+/* Force solid colored/gradient backgrounds to keep their white text color */
+html:not(.dark) .bg-brand-600,
+html:not(.dark) .bg-brand-700,
+html:not(.dark) .from-brand-600,
+html:not(.dark) .from-brand-700,
+html:not(.dark) .from-brand-500,
+html:not(.dark) .bg-emerald-600,
+html:not(.dark) .bg-emerald-500,
+html:not(.dark) .bg-rose-600,
+html:not(.dark) .bg-red-600,
+html:not(.dark) .bg-neon-emerald,
+html:not(.dark) .bg-neon-pink,
+html:not(.dark) .bg-neon-violet,
+html:not(.dark) .bg-neon-purple,
+html:not(.dark) .bg-neon-cyan,
+html:not(.dark) .bg-neon-amber,
+html:not(.dark) .bg-brand-600 *,
+html:not(.dark) .bg-brand-700 *,
+html:not(.dark) .from-brand-600 *,
+html:not(.dark) .from-brand-700 *,
+html:not(.dark) .from-brand-500 *,
+html:not(.dark) .bg-emerald-600 *,
+html:not(.dark) .bg-emerald-500 *,
+html:not(.dark) .bg-rose-600 *,
+html:not(.dark) .bg-red-600 *,
+html:not(.dark) .bg-neon-emerald *,
+html:not(.dark) .bg-neon-pink *,
+html:not(.dark) .bg-neon-violet *,
+html:not(.dark) .bg-neon-purple *,
+html:not(.dark) .bg-neon-cyan *,
+html:not(.dark) .bg-neon-amber * {
+  color: #ffffff !important;
+}
+
+/* Also handle hover:text-white on sidebar links / lists to not turn white on light background */
+html:not(.dark) .hover\:text-white:hover:not(button):not(button *):not(a *):not(.bg-brand-600 *):not(.bg-brand-700 *) {
+  color: var(--text-main) !important;
+}
+
+/* In light mode, prevent borders and dividers from becoming white/invisible by mapping dark background-themed border/divide classes to visible gray borders */
+html:not(.dark) [class*="border-neutral-950"]:not(:focus):not(:hover),
+html:not(.dark) [class*="border-neutral-900"]:not(:focus):not(:hover),
+html:not(.dark) [class*="border-neutral-850"]:not(:focus):not(:hover),
+html:not(.dark) [class*="border-neutral-800"]:not(:focus):not(:hover),
+html:not(.dark) [class*="border-obsidian-950"]:not(:focus):not(:hover),
+html:not(.dark) [class*="border-obsidian-900"]:not(:focus):not(:hover),
+html:not(.dark) [class*="border-obsidian-850"]:not(:focus):not(:hover),
+html:not(.dark) [class*="border-obsidian-800"]:not(:focus):not(:hover) {
+  border-color: var(--border-light) !important;
+}
+
+html:not(.dark) [class*="border-neutral-950"]:not(:focus):hover,
+html:not(.dark) [class*="border-neutral-900"]:not(:focus):hover,
+html:not(.dark) [class*="border-neutral-850"]:not(:focus):hover,
+html:not(.dark) [class*="border-neutral-800"]:not(:focus):hover,
+html:not(.dark) [class*="border-obsidian-950"]:not(:focus):hover,
+html:not(.dark) [class*="border-obsidian-900"]:not(:focus):hover,
+html:not(.dark) [class*="border-obsidian-850"]:not(:focus):hover,
+html:not(.dark) [class*="border-obsidian-800"]:not(:focus):hover {
+  border-color: var(--border-strong) !important;
+}
+
+html:not(.dark) [class*="divide-neutral-950"] > :not([hidden]) ~ :not([hidden]),
+html:not(.dark) [class*="divide-neutral-900"] > :not([hidden]) ~ :not([hidden]),
+html:not(.dark) [class*="divide-neutral-850"] > :not([hidden]) ~ :not([hidden]),
+html:not(.dark) [class*="divide-neutral-800"] > :not([hidden]) ~ :not([hidden]),
+html:not(.dark) [class*="divide-obsidian-950"] > :not([hidden]) ~ :not([hidden]),
+html:not(.dark) [class*="divide-obsidian-900"] > :not([hidden]) ~ :not([hidden]),
+html:not(.dark) [class*="divide-obsidian-850"] > :not([hidden]) ~ :not([hidden]),
+html:not(.dark) [class*="divide-obsidian-800"] > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border-light) !important;
+}
+
+/* SVG styling overrides for line graphs & charts in light mode */
+html:not(.dark) svg line {
+  stroke: #cbd5e1 !important; /* gridlines */
+}
+html:not(.dark) svg text {
+  fill: #475569 !important; /* label texts */
+}
+/* Exclude tooltip card text inside charts */
+html:not(.dark) svg g.pointer-events-none text {
+  fill: #ffffff !important;
+}
+html:not(.dark) svg g.pointer-events-none rect {
+  fill: #171717 !important;
+  stroke: #404040 !important;
+}
+
+/* In light mode, override hardcoded dark-red/dark-green alert/toast backgrounds to high-contrast soft styling */
+html:not(.dark) [class*="bg-red-950"] {
+  background-color: #fee2e2 !important; /* soft red-100 */
+  border-color: #fca5a5 !important;      /* red-300 */
+  color: #991b1b !important;             /* red-800 */
+}
+html:not(.dark) [class*="bg-red-950"] * {
+  color: #991b1b !important;
+}
+
+html:not(.dark) [class*="bg-emerald-950"] {
+  background-color: #d1fae5 !important; /* soft emerald-100 */
+  border-color: #6ee7b7 !important;      /* emerald-300 */
+  color: #065f46 !important;             /* emerald-800 */
+}
+html:not(.dark) [class*="bg-emerald-950"] * {
+  color: #065f46 !important;
+}
+
+/* In light mode, style sidebar and mobile navigation active links with primary brand color */
+html:not(.dark) aside nav a.text-brand-300 {
+  color: var(--color-brand-600) !important;
+  background-color: rgba(99, 102, 241, 0.1) !important;
+}
+html:not(.dark) aside nav a.text-brand-300 * {
+  color: var(--color-brand-600) !important;
+}
+
+html:not(.dark) nav a.text-brand-500 {
+  color: var(--color-brand-600) !important;
+}
+html:not(.dark) nav a.text-brand-500 * {
+  color: var(--color-brand-600) !important;
+}
