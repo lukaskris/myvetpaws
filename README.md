@@ -1,69 +1,142 @@
-# CodeIgniter 4 Application Starter
+# 🐾 MyVetPaws — Premium Veterinary Clinic & Practice Management System
 
-## What is CodeIgniter?
+MyVetPaws is a modern, high-performance, and visually stunning web application built for veterinary clinics, veterinary practitioners, and clinic owners. Featuring a premium **Obsidian Cosmic Dark-Mode Design**, MyVetPaws streamlines patient check-ins, diagnostic recordings, medical item management, billing/invoices, and appointment scheduling.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+---
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+## ✨ Features & Architecture Highlights
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+### 🌌 Cosmic Glassmorphic Interface
+* **Premium Design System**: Built with modern HSL-tailored cosmic colors, dark gradients, frosted glass panels (`backdrop-filter`), and micro-animations.
+* **Tactile Interactions**: Dynamic bounce transitions on buttons, subtle hover indicators, and custom interactive inputs.
+* **Responsive Layouts**: Full-screen optimized for desktop clinic dashboards, with elegant responsive collapses for mobile and tablet usage.
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+### 📅 Interactive Visits & Google Calendar View
+* **Monthly Calendar Grid**: Seamless client-side monthly view built using Alpine.js. Transition across months timezone-safely.
+* **Visit Details Panel**: Interactive date cells. Click on any date to load a detailed summary card of that day's scheduled check-ins below.
+* **Quick Scheduler**: Hover over any date grid cell to reveal a `+` shortcut button linking to a patient check-in page prefilled for that specific date.
 
-## Installation & updates
+### 🏥 Patient Check-In & Medical Logs
+* **Initial Vitals & Vitals Form**: Track patient weight (kg), body temperature (°C), and chief complaints during registration.
+* **Smart Patient Filtering**: Alpine.js dynamically filters registered pets on-the-fly when choosing a customer.
+* **Diagnostic & Treatment Logs**: Record exact diagnosis reports, detailed treatment plans, and schedule retroactive/future check-ups.
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+### 💊 Medical Services & Items Inventory
+* **Services**: Custom service logs (Grooming, Consultation, Rabies Vaccination, etc.) with automated pricing.
+* **Prescriptions & Items**: Support for custom medical items (medicines, vaccines, and supplements like Vitamin C) and integrating them directly into visit services.
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+### 🧾 Smart Consolidated Invoices & Billing
+* **Multi-Pet Consolidated Invoices**: Generates a single unified invoice PDF for customers checking in multiple pets on the same day.
+* **Clean Print Templates**: Clean PDF templates optimized for printers and digital downloads (removed generic branding watermarks for a premium feel).
+* **Payment Tracking**: Record partial payments, calculate remaining balances, and track payment history instantly.
 
-## Setup
+---
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+## 🛠️ Technology Stack
 
-## Important Change with index.php
+* **Backend Framework**: CodeIgniter 4.7.3 (PHP 8.2+)
+* **Database**: SQLite (Local development) / MySQL (Production server)
+* **Frontend Styles**: Tailwind CSS v4 (Compiles via PostCSS / Vite toolchain)
+* **Interactions**: Alpine.js & Lucide Icons
+* **Deployment Automation**: GitHub Actions & Rsync over SSH
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+---
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+## 🚀 Local Development Setup
 
-**Please** read the user guide for a better explanation of how CI4 works!
+Follow these steps to run MyVetPaws on your local machine:
 
-## Repository Management
+### 1. Prerequisites
+* **PHP**: 8.2 or 8.4+ (required extensions: `intl`, `mbstring`, `sqlite3`, `mysqlnd`, `curl`)
+* **Composer**: For PHP dependency management
+* **Node.js & npm**: For compilation of Tailwind CSS assets
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+### 2. Installation Steps
+1. Clone the repository and navigate to the project directory:
+   ```bash
+   cd "New Myvetpaws codeigniter"
+   ```
+2. Install Composer dependencies:
+   ```bash
+   composer install
+   ```
+3. Install NPM packages:
+   ```bash
+   npm install
+   ```
+4. Copy the environment template file:
+   ```bash
+   cp env .env
+   ```
+5. Open `.env` and configure your settings:
+   * Ensure `app.baseURL` matches your local URL (e.g., `http://localhost:8083/`).
+   * Ensure `database.default.DBDriver = 'SQLite3'` is configured for local development.
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+### 3. Database Migration & Seeding
+Prepare the database schemas and populate sample data (includes a pre-registered clinic, doctor, sample customers, and invoices):
+```bash
+php spark migrate
+php spark db:seed SampleDataSeeder
+```
 
-## Server Requirements
+### 4. Running the Application
+1. Start compiling Tailwind CSS assets:
+   ```bash
+   npm run build
+   ```
+   *(For active development with hot-rebuilding, run `npm run dev` instead)*
+2. Spin up the CodeIgniter development server:
+   ```bash
+   php spark serve --port 8083
+   ```
+3. Open your browser and go to: **[http://localhost:8083/index.php/login](http://localhost:8083/index.php/login)**
+4. Log in using the sample credentials:
+   * **Email**: `admin@clinic.com`
+   * **Password**: `password`
 
-PHP version 8.2 or higher is required, with the following extensions installed:
+---
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+## 🤖 CI/CD Auto-Deployment Pipeline
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - The end of life date for PHP 8.1 was December 31, 2025.
-> - If you are still using below PHP 8.2, you should upgrade immediately.
-> - The end of life date for PHP 8.2 will be December 31, 2026.
+MyVetPaws is configured for continuous integration and automated deployment via **GitHub Actions**.
 
-Additionally, make sure that the following extensions are enabled in your PHP:
+### How it Works
+1. When you push a change to the `main` branch:
+   * The runner checks out the codebase.
+   * Node.js sets up and executes `npm ci` and `npm run build` to compile the optimized Tailwind CSS v4 assets.
+   * `rsync` securely pushes the compiled assets and codebase over SSH to the production server.
+   * Post-deploy commands run `composer install --no-dev --optimize-autoloader`, run database migrations (`php spark migrate`), and correct ownership permissions (`www-data:www-data`) for the `/writable/` directories.
 
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+### Setup Repository Secrets
+Ensure the following GitHub Actions secrets are set up under **Settings > Secrets and variables > Actions**:
+* `SSH_HOST`: The production IP address of the server (`72.61.143.83`).
+* `SSH_USER`: The SSH connection user (`root`).
+* `SSH_PRIVATE_KEY`: The ED25519 private key generated specifically for GitHub Actions.
+
+---
+
+## 📁 Key File Structure
+
+```text
+├── .github/workflows/deploy.yml   # CI/CD GitHub Action configuration
+├── app/
+│   ├── Config/                    # CodeIgniter core configuration files
+│   ├── Controllers/               # Controllers (Visit, Invoice, Auth, etc.)
+│   ├── Database/
+│   │   ├── Migrations/            # DB Schema definitions
+│   │   └── Seeds/                 # Sample data seeders
+│   ├── Models/                    # Data models mapping SQL tables
+│   └── Views/
+│       ├── layouts/               # Main layout wrappers and Tailwind inputs
+│       ├── visits/                # Visits views & Alpine.js interactive calendar
+│       └── invoices/              # Invoice views and print templates
+├── public/
+│   └── css/app.css                # Compiled Tailwind CSS stylesheet
+└── package.json                   # Tailwind CSS build scripts & dependencies
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
