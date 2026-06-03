@@ -10,11 +10,9 @@ EMAIL="edwin.kurniawan@balog.co.id"
 echo "=== 1. Compiling Tailwind CSS assets locally ==="
 npm run build
 
-echo "=== 2. Backing up old Laravel database and files on remote server ==="
+echo "=== 2. Cleaning old files on remote server ==="
 sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@$SERVER_IP "
-  mysqldump myvetpaws > /root/myvetpaws_old_laravel.sql 2>/dev/null || true
   if [ -d $REMOTE_PATH ]; then
-    tar -czf /root/myvetpaws_old_laravel.tar.gz -C /var/www myvetpaws 2>/dev/null || true
     rm -rf $REMOTE_PATH
   fi
 "
