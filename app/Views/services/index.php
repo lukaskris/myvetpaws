@@ -34,7 +34,7 @@
             <template x-for="cat in categories">
                 <button @click="activeCategory = cat"
                     class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition duration-150"
-                    :class="activeCategory === cat ? 'bg-neutral-800 border-neutral-700 text-white shadow-inner' : 'bg-transparent border-neutral-900 text-neutral-400 hover:text-white hover:border-neutral-800'">
+                    :class="activeCategory === cat ? 'bg-neutral-800 border-neutral-700 text-white shadow-inner' : 'bg-transparent border-neutral-900 text-neutral-400 hover:text-neutral-50 dark:hover:text-white hover:border-neutral-800'">
                     <span x-text="cat"></span>
                 </button>
             </template>

@@ -271,6 +271,15 @@ html:not(.dark) [class*="bg-emerald-950"] * {
   color: #065f46 !important;
 }
 
+html:not(.dark) [class*="bg-amber-950"] {
+  background-color: #fef3c7 !important; /* soft amber-100 */
+  border-color: #fcd34d !important;      /* amber-300 */
+  color: #92400e !important;             /* amber-800 */
+}
+html:not(.dark) [class*="bg-amber-950"] * {
+  color: #92400e !important;
+}
+
 /* In light mode, style sidebar and mobile navigation active links with primary brand color */
 html:not(.dark) aside nav a.text-brand-300 {
   color: var(--color-brand-600) !important;

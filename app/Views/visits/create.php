@@ -123,7 +123,7 @@
                             <div class="flex items-center justify-between">
                                 <h3 class="text-xs font-bold text-brand-400 uppercase tracking-wider" x-text="`Patient #${index + 1}`"></h3>
                                 <button type="button" @click="removePet(index)" x-show="selectedPets.length > 1"
-                                        class="text-xs font-semibold text-rose-450 hover:text-rose-450 transition cursor-pointer flex items-center gap-1.5 bg-transparent border-0">
+                                        class="text-xs font-semibold text-red-500 hover:text-red-400 dark:text-neon-pink dark:hover:text-pink-400 transition cursor-pointer flex items-center gap-1.5 bg-transparent border-0">
                                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                     <span>Remove</span>
                                 </button>

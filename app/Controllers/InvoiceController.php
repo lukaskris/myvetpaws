@@ -139,6 +139,13 @@ class InvoiceController extends BaseController
                        ->get()
                        ->getResultArray();
             
+            $itms = $db->table('medical_record_items')
+                       ->select('medical_record_items.quantity, items.name, items.code, medical_record_items.sell_price as price')
+                       ->join('items', 'items.id = medical_record_items.item_id', 'inner')
+                       ->where('medical_record_items.medical_record_id', $inv['mr_id'])
+                       ->get()
+                       ->getResultArray();
+            
             $groupedPets[] = [
                 'invoice_id'     => $inv['inv_id'],
                 'pet_name'       => $inv['pet_name'],
@@ -148,6 +155,7 @@ class InvoiceController extends BaseController
                 'treatment_plan' => $inv['treatment_plan'],
                 'doctor_name'    => $inv['doctor_name'],
                 'services'       => $srvs,
+                'items'          => $itms,
                 'subtotal'       => $inv['inv_total']
             ];
             $totalInvoiceAmount += $inv['inv_total'];
@@ -284,6 +292,13 @@ class InvoiceController extends BaseController
                        ->get()
                        ->getResultArray();
             
+            $itms = $db->table('medical_record_items')
+                       ->select('medical_record_items.quantity, items.name, items.code, medical_record_items.sell_price as price')
+                       ->join('items', 'items.id = medical_record_items.item_id', 'inner')
+                       ->where('medical_record_items.medical_record_id', $inv['mr_id'])
+                       ->get()
+                       ->getResultArray();
+            
             $groupedPets[] = [
                 'invoice_id'     => $inv['inv_id'],
                 'pet_name'       => $inv['pet_name'],
@@ -293,6 +308,7 @@ class InvoiceController extends BaseController
                 'treatment_plan' => $inv['treatment_plan'],
                 'doctor_name'    => $inv['doctor_name'],
                 'services'       => $srvs,
+                'items'          => $itms,
                 'subtotal'       => $inv['inv_total']
             ];
             $totalInvoiceAmount += $inv['inv_total'];

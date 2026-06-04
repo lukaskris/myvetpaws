@@ -128,25 +128,23 @@ function getDetailedAge($birthDate) {
                         <label for="treatment_plan" class="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">Treatment Plan / Prescription</label>
                         <textarea name="treatment_plan" id="treatment_plan" rows="4" required placeholder="Write medication plan, prescription details, rest instructions..."
                                   class="w-full bg-neutral-950 border border-neutral-850 focus:border-brand-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition duration-150 resize-none"><?= old('treatment_plan') ?></textarea>
-                    </div>
-
-                    <!-- Services Rendered -->
+                                       <!-- Services Rendered -->
                     <div>
-                        <label class="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-3">Services Rendered & Billing Items</label>
+                        <label class="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-3">Services & Procedures Rendered</label>
                         
                         <?php if (empty($services)): ?>
                             <div class="p-4 bg-neutral-950 border border-neutral-850 rounded-2xl text-center">
-                                <p class="text-xs text-neutral-500">No services or medical items have been defined in this clinic yet.</p>
-                                <a href="/services/create" target="_blank" class="text-xs text-brand-500 font-semibold mt-1 inline-block">Define Catalog Items &rarr;</a>
+                                <p class="text-xs text-neutral-500">No clinical services have been defined in this clinic yet.</p>
+                                <a href="/services/create" target="_blank" class="text-xs text-brand-500 font-semibold mt-1 inline-block">Define Services Catalog &rarr;</a>
                             </div>
                         <?php else: ?>
                             <div x-data="{
                                 searchQuery: '',
                                 activeCategory: 'All',
-                                categories: ['All', 'Consultation', 'Vaccination', 'Surgery', 'Grooming', 'Laboratory Test', 'Medicine', 'Supplies'],
+                                categories: ['All', 'Consultation', 'Vaccination', 'Surgery', 'Grooming', 'Laboratory Test'],
                                 matches(name, code, category) {
                                     const matchSearch = name.toLowerCase().includes(this.searchQuery.toLowerCase()) || 
-                                                        code.toLowerCase().includes(this.searchQuery.toLowerCase());
+                                                         code.toLowerCase().includes(this.searchQuery.toLowerCase());
                                     const matchCategory = this.activeCategory === 'All' || category === this.activeCategory;
                                     return matchSearch && matchCategory;
                                 }
@@ -159,7 +157,7 @@ function getDetailedAge($birthDate) {
                                         <template x-for="cat in categories">
                                             <button type="button" @click="activeCategory = cat"
                                                 class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition duration-150 cursor-pointer"
-                                                :class="activeCategory === cat ? 'bg-neutral-800 border-neutral-750 text-white shadow-inner' : 'bg-transparent border-neutral-850 text-neutral-400 hover:text-white hover:border-neutral-750'">
+                                                :class="activeCategory === cat ? 'bg-neutral-800 border-neutral-750 text-white shadow-inner' : 'bg-transparent border-neutral-850 text-neutral-400 hover:text-neutral-50 dark:hover:text-white hover:border-neutral-750'">
                                                 <span x-text="cat"></span>
                                             </button>
                                         </template>
@@ -172,7 +170,7 @@ function getDetailedAge($birthDate) {
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                             </svg>
                                         </span>
-                                        <input type="text" x-model="searchQuery" placeholder="Search item or code..."
+                                        <input type="text" x-model="searchQuery" placeholder="Search service..."
                                             class="block w-full rounded-xl bg-neutral-950 border border-neutral-850 pl-9 pr-3 py-2.5 text-white placeholder-neutral-500 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none text-xs transition">
                                     </div>
                                 </div>
@@ -184,7 +182,7 @@ function getDetailedAge($birthDate) {
                                              x-data="{ checked: false }" 
                                              x-show="matches(<?= esc(json_encode($service['name'])) ?>, <?= esc(json_encode($service['code'])) ?>, <?= esc(json_encode($service['category'])) ?>)"
                                              x-transition.opacity.duration.150ms>
-                                            <div class="flex items-center space-x-3 min-w-0">
+                                             <div class="flex items-center space-x-3 min-w-0">
                                                 <input type="checkbox" name="services[]" value="<?= $service['id'] ?>" x-model="checked" id="service-<?= $service['id'] ?>"
                                                        class="h-4.5 w-4.5 rounded border-neutral-800 text-brand-600 bg-neutral-950 focus:ring-brand-500 cursor-pointer">
                                                 <label for="service-<?= $service['id'] ?>" class="cursor-pointer select-none min-w-0">
@@ -193,13 +191,95 @@ function getDetailedAge($birthDate) {
                                                         Rp<?= number_format($service['price'], 0, ',', '.') ?> (<?= esc($service['code']) ?>) • <span class="text-brand-400 font-semibold"><?= esc($service['category']) ?></span>
                                                     </span>
                                                 </label>
-                                            </div>
-                                            <!-- Quantity field (visible when checked) -->
-                                            <div x-show="checked" x-transition class="flex items-center gap-2 shrink-0">
-                                                <label class="text-[10px] uppercase font-bold text-neutral-500">Qty</label>
-                                                <input type="number" name="quantities[<?= $service['id'] ?>]" min="1" value="1"
-                                                       class="w-16 bg-neutral-900 border border-neutral-800 focus:border-brand-500 rounded-lg px-2 py-1 text-xs text-center focus:outline-none">
-                                            </div>
+                                             </div>
+                                             <!-- Quantity field (visible when checked) -->
+                                             <div x-show="checked" x-transition class="flex items-center gap-2 shrink-0">
+                                                 <label class="text-[10px] uppercase font-bold text-neutral-500">Qty</label>
+                                                 <input type="number" name="quantities[<?= $service['id'] ?>]" min="1" value="1"
+                                                        class="w-16 bg-neutral-900 border border-neutral-800 focus:border-brand-500 rounded-lg px-2 py-1 text-xs text-center focus:outline-none">
+                                             </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Medicines & Disposable Supplies Used -->
+                    <div>
+                        <label class="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-3">Medicines & Disposable Supplies Used</label>
+                        
+                        <?php if (empty($items)): ?>
+                            <div class="p-4 bg-neutral-950 border border-neutral-850 rounded-2xl text-center">
+                                <p class="text-xs text-neutral-500">No medicines or disposable supplies have been defined in this clinic yet.</p>
+                                <a href="/items/create" target="_blank" class="text-xs text-brand-500 font-semibold mt-1 inline-block">Define Inventory Items &rarr;</a>
+                            </div>
+                        <?php else: ?>
+                            <div x-data="{
+                                searchQuery: '',
+                                activeCategory: 'All',
+                                categories: ['All', 'Medicine', 'Supplies', 'Equipment'],
+                                matches(name, code, category) {
+                                    const matchSearch = name.toLowerCase().includes(this.searchQuery.toLowerCase()) || 
+                                                         code.toLowerCase().includes(this.searchQuery.toLowerCase());
+                                    const matchCategory = this.activeCategory === 'All' || category === this.activeCategory;
+                                    return matchSearch && matchCategory;
+                                }
+                            }" class="space-y-4">
+                                
+                                <!-- Search and Category Filters -->
+                                <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                                    <!-- Category Chips -->
+                                    <div class="flex flex-wrap gap-1.5 self-start">
+                                        <template x-for="cat in categories">
+                                            <button type="button" @click="activeCategory = cat"
+                                                class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition duration-150 cursor-pointer"
+                                                :class="activeCategory === cat ? 'bg-neutral-800 border-neutral-750 text-white shadow-inner' : 'bg-transparent border-neutral-850 text-neutral-400 hover:text-neutral-50 dark:hover:text-white hover:border-neutral-750'">
+                                                <span x-text="cat"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+
+                                    <!-- Search Input -->
+                                    <div class="relative w-full sm:w-64">
+                                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-neutral-500">
+                                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            </svg>
+                                        </span>
+                                        <input type="text" x-model="searchQuery" placeholder="Search medicine/supply..."
+                                            class="block w-full rounded-xl bg-neutral-950 border border-neutral-850 pl-9 pr-3 py-2.5 text-white placeholder-neutral-500 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none text-xs transition">
+                                    </div>
+                                </div>
+
+                                <!-- Grid List -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <?php foreach ($items as $item): ?>
+                                        <div class="p-4 bg-neutral-950 border border-neutral-850 rounded-2xl flex items-center justify-between gap-4" 
+                                             x-data="{ checked: false, qty: 1, stock: <?= (int)$item['stock'] ?> }" 
+                                             x-show="matches(<?= esc(json_encode($item['name'])) ?>, <?= esc(json_encode($item['code'])) ?>, <?= esc(json_encode($item['category'])) ?>)"
+                                             x-transition.opacity.duration.150ms>
+                                             <div class="flex items-center space-x-3 min-w-0">
+                                                <input type="checkbox" name="items[]" value="<?= $item['id'] ?>" x-model="checked" id="item-<?= $item['id'] ?>"
+                                                       class="h-4.5 w-4.5 rounded border-neutral-800 text-brand-600 bg-neutral-950 focus:ring-brand-500 cursor-pointer">
+                                                <label for="item-<?= $item['id'] ?>" class="cursor-pointer select-none min-w-0">
+                                                    <span class="text-sm font-semibold text-white block truncate"><?= esc($item['name']) ?></span>
+                                                    <span class="text-xs text-neutral-400 block mt-0.5">
+                                                        Rp<?= number_format($item['sell_price'], 0, ',', '.') ?> (<?= esc($item['code']) ?>) • 
+                                                        <span class="text-brand-400 font-semibold"><?= esc($item['category']) ?></span> • 
+                                                        <span :class="stock <= 0 ? 'text-red-500 dark:text-neon-pink font-bold' : (stock <= <?= (int)$item['min_stock'] ?> ? 'text-amber-500 dark:text-neon-amber font-bold' : 'text-emerald-500 dark:text-neon-emerald')" x-text="stock + ' in stock'"></span>
+                                                    </span>
+                                                    <span x-show="checked && qty > stock" class="text-[10px] text-red-500 dark:text-neon-pink font-bold block mt-1">
+                                                        ⚠️ Warning: Exceeds stock count!
+                                                    </span>
+                                                </label>
+                                             </div>
+                                             <!-- Quantity field (visible when checked) -->
+                                             <div x-show="checked" x-transition class="flex items-center gap-2 shrink-0">
+                                                 <label class="text-[10px] uppercase font-bold text-neutral-500">Qty</label>
+                                                 <input type="number" name="item_quantities[<?= $item['id'] ?>]" min="1" x-model.number="qty"
+                                                        class="w-16 bg-neutral-900 border border-neutral-800 focus:border-brand-500 rounded-lg px-2 py-1 text-xs text-center focus:outline-none">
+                                             </div>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>

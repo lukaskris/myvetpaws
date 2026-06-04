@@ -215,6 +215,12 @@
                         <td colspan="2"><?= ($petIdx + 1) ?>. <?= $petHeader ?>:</td>
                     </tr>
                     
+                    <!-- Services sub-section -->
+                    <tr>
+                        <td colspan="2" style="font-size: 8px; font-weight: bold; text-transform: uppercase; color: #6b7280; padding-left: 10px; padding-top: 6px; padding-bottom: 2px;">
+                            Services & Procedures:
+                        </td>
+                    </tr>
                     <?php if (empty($gp['services'])): ?>
                         <tr>
                             <td class="item-name" style="color: #9ca3af; italic; padding-left: 20px;">- No services billed.</td>
@@ -226,6 +232,32 @@
                             $desc = esc($srv['name']);
                             if ($srv['quantity'] > 1) {
                                 $desc .= ' (x' . esc($srv['quantity']) . ')';
+                            }
+                        ?>
+                            <tr>
+                                <td class="item-name">- <?= $desc ?></td>
+                                <td class="item-price">Rp<?= number_format($lineTotal, 0, ',', '.') ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+
+                    <!-- Medicines & Supplies sub-section -->
+                    <tr>
+                        <td colspan="2" style="font-size: 8px; font-weight: bold; text-transform: uppercase; color: #6b7280; padding-left: 10px; padding-top: 6px; padding-bottom: 2px;">
+                            Medicines & Supplies:
+                        </td>
+                    </tr>
+                    <?php if (empty($gp['items'])): ?>
+                        <tr>
+                            <td class="item-name" style="color: #9ca3af; italic; padding-left: 20px;">- No medicines/supplies used.</td>
+                            <td class="item-price" style="color: #9ca3af;">Rp0</td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($gp['items'] as $itm): 
+                            $lineTotal = $itm['price'] * $itm['quantity'];
+                            $desc = esc($itm['name']);
+                            if ($itm['quantity'] > 1) {
+                                $desc .= ' (x' . esc($itm['quantity']) . ')';
                             }
                         ?>
                             <tr>

@@ -225,9 +225,14 @@ class VisitController extends BaseController
         $servicesModel = new ServicesModel();
         $services = $servicesModel->where('status', 1)->orderBy('name', 'ASC')->findAll();
 
+        // Fetch active inventory items for checkboxes
+        $itemsModel = new \App\Models\ItemsModel();
+        $items = $itemsModel->where('status', 1)->orderBy('name', 'ASC')->findAll();
+
         return view('visits/examine', [
             'visit'    => $visit,
             'services' => $services,
+            'items'    => $items,
         ]);
     }
 
@@ -251,6 +256,7 @@ class VisitController extends BaseController
             'treatment_plan' => 'required|min_length[3]|max_length[5000]',
             'next_visit_at'  => 'permit_empty|valid_date[Y-m-d]',
             'services'       => 'permit_empty', // Array of service IDs
+            'items'          => 'permit_empty', // Array of item IDs
         ];
 
         if (!$this->validate($rules)) {
@@ -298,6 +304,42 @@ class VisitController extends BaseController
 
                 if (isset($dbServicesById[$serviceId])) {
                     $totalAmount += $dbServicesById[$serviceId]['price'] * $qty;
+                }
+            }
+        }
+
+        // 2b. Save Medical Record Items (Pivot) and Decrement Stock
+        $selectedItems = $this->request->getPost('items') ?: [];
+        $itemQuantities = $this->request->getPost('item_quantities') ?: [];
+
+        if (!empty($selectedItems)) {
+            $mRecordItemsModel = new \App\Models\MedicalRecordItemsModel();
+            $itemsModel = new \App\Models\ItemsModel();
+            $dbItems = $itemsModel->whereIn('id', $selectedItems)->findAll();
+            $dbItemsById = [];
+            foreach ($dbItems as $item) {
+                $dbItemsById[$item['id']] = $item;
+            }
+
+            foreach ($selectedItems as $itemId) {
+                $qty = isset($itemQuantities[$itemId]) ? (int)$itemQuantities[$itemId] : 1;
+                if ($qty < 1) $qty = 1;
+
+                if (isset($dbItemsById[$itemId])) {
+                    $itemData = $dbItemsById[$itemId];
+                    $mRecordItemsModel->insert([
+                        'medical_record_id' => $medicalRecordId,
+                        'item_id'           => $itemId,
+                        'quantity'          => $qty,
+                        'buy_price'         => $itemData['buy_price'],
+                        'sell_price'        => $itemData['sell_price'],
+                    ]);
+
+                    // Deduct stock (soft warning: permits stock to go negative)
+                    $newStock = $itemData['stock'] - $qty;
+                    $itemsModel->update($itemId, ['stock' => $newStock]);
+
+                    $totalAmount += $itemData['sell_price'] * $qty;
                 }
             }
         }

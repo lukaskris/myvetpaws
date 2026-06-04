@@ -159,62 +159,101 @@
         </div>
     </div>
 
-    <!-- Right Column: Queue/Activity -->
-    <div class="glass-panel p-6 rounded-3xl shadow-xl">
-        <div class="flex items-center justify-between mb-1.5">
-            <h3 class="text-lg font-extrabold text-white">Patient Queue</h3>
-            <?php if (!empty($activeQueue)): ?>
-                <span class="px-2.5 py-0.5 text-[10px] bg-brand-600/20 text-brand-300 border border-brand-500/25 rounded-full font-bold">
-                    <?= count($activeQueue) ?> active
-                </span>
-            <?php endif; ?>
-        </div>
-        <p class="text-xs text-slate-400 mb-6">Real-time check-ins waiting for medical inspection.</p>
-
-        <?php if (empty($activeQueue)): ?>
-            <!-- Empty Queue State -->
-            <div class="flex flex-col items-center justify-center py-10 text-center">
-                <div class="p-3 bg-obsidian-950 border border-obsidian-850 text-slate-600 rounded-2xl mb-3 shadow-inner">
-                    <i data-lucide="hourglass" class="w-8 h-8 text-slate-500 animate-pulse"></i>
+    <!-- Right Column: Queue/Activity & Alerts -->
+    <div class="space-y-6">
+        <!-- Low Stock Alerts -->
+        <?php if (!empty($lowStockItems)): ?>
+            <div class="glass-panel p-6 rounded-3xl shadow-xl border-l-4 border-amber-500/80 bg-amber-500/5">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-500 animate-pulse"></i>
+                        <span>Restock Required</span>
+                    </h3>
+                    <span class="px-2 py-0.5 text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/25 rounded font-bold">
+                        <?= count($lowStockItems) ?> <?= count($lowStockItems) > 1 ? 'items' : 'item' ?>
+                    </span>
                 </div>
-                <h4 class="text-sm font-bold text-white">Queue is empty</h4>
-                <p class="text-xs text-slate-500 max-w-xs mt-1.5 leading-relaxed">No checked-in patients in the clinic right now. Create a visit to start.</p>
-            </div>
-        <?php else: ?>
-            <!-- Active Queue List -->
-            <div class="space-y-3.5">
-                <?php foreach ($activeQueue as $queuedVisit): ?>
-                    <div class="p-4 bg-obsidian-950/45 border border-obsidian-850 rounded-2xl flex items-center justify-between gap-3 hover:border-brand-500/20 transition duration-150 shadow-sm">
-                        <div class="truncate">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <a href="/pets/show/<?= $queuedVisit['pet_id'] ?>" class="text-sm font-bold text-white hover:text-brand-400 transition-colors truncate">
-                                    <?= esc($queuedVisit['pet_name']) ?>
-                                </a>
-                                <span class="text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider <?= $queuedVisit['status'] == 2 ? 'bg-neon-amber/15 text-neon-amber border border-neon-amber/15' : 'bg-brand-600/15 text-brand-300 border border-brand-500/15' ?>">
-                                    <?= $queuedVisit['status'] == 2 ? 'Exam' : 'Queued' ?>
-                                </span>
+                <div class="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                    <?php foreach ($lowStockItems as $lowItem): ?>
+                        <div class="flex justify-between items-center text-xs py-1 border-b border-obsidian-850/60 last:border-0">
+                            <div class="min-w-0">
+                                <span class="font-bold text-white block truncate"><?= esc($lowItem['name']) ?></span>
+                                <span class="text-[9px] text-slate-500 block font-semibold"><?= esc($lowItem['category']) ?></span>
                             </div>
-                            <span class="text-xs text-slate-400 block mt-1 truncate">Owner: <?= esc($queuedVisit['customer_name']) ?></span>
-                            <?php if (!empty($queuedVisit['complaints'])): ?>
-                                <span class="text-[11px] text-slate-500 block italic mt-1.5 truncate">"<?= esc($queuedVisit['complaints']) ?>"</span>
-                            <?php endif; ?>
-                            <span class="text-[10px] text-slate-500 block mt-2 font-medium">Checked in at <?= date('H:i', strtotime($queuedVisit['checkin_time'])) ?></span>
+                            <div class="text-right shrink-0">
+                                <?php if ($lowItem['stock'] <= 0): ?>
+                                    <span class="text-[10px] font-bold text-neon-pink bg-neon-pink/10 border border-neon-pink/15 px-2 py-0.5 rounded-full">Out of Stock</span>
+                                <?php else: ?>
+                                    <span class="text-[10px] font-bold text-amber-500 bg-amber-500/10 border border-amber-500/15 px-2 py-0.5 rounded-full"><?= esc($lowItem['stock']) ?> left (min <?= esc($lowItem['min_stock']) ?>)</span>
+                                <?php endif; ?>
+                            </div>
                         </div>
-                        
-                        <div class="flex flex-col gap-2 shrink-0 items-end">
-                            <?php if (session()->get('user_role') === 'owner' || session()->get('user_role') === 'doctor'): ?>
-                                <a href="/visits/examine/<?= $queuedVisit['id'] ?>" class="px-3 py-1.5 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 text-white text-[11px] font-bold rounded-lg transition-premium text-center shadow-md shadow-brand-600/10 hover:shadow-brand-500/20 hover:scale-[1.02] active:scale-[0.98]">
-                                    Examine
-                                </a>
-                            <?php endif; ?>
-                            <a href="/visits/cancel/<?= $queuedVisit['id'] ?>" onclick="return confirm('Are you sure you want to cancel this check-in?');" class="text-[10px] font-bold text-neon-pink hover:text-rose-300 px-1 py-0.5 transition">
-                                Cancel
-                            </a>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
+                    <?php endforeach; ?>
+                </div>
+                <a href="/items" class="text-xs font-bold text-brand-500 hover:text-brand-400 mt-4 inline-flex items-center gap-1.5 transition">
+                    <span>Manage Inventory</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
             </div>
         <?php endif; ?>
+
+        <!-- Patient Queue -->
+        <div class="glass-panel p-6 rounded-3xl shadow-xl">
+            <div class="flex items-center justify-between mb-1.5">
+                <h3 class="text-lg font-extrabold text-white">Patient Queue</h3>
+                <?php if (!empty($activeQueue)): ?>
+                    <span class="px-2.5 py-0.5 text-[10px] bg-brand-600/20 text-brand-300 border border-brand-500/25 rounded-full font-bold">
+                        <?= count($activeQueue) ?> active
+                    </span>
+                <?php endif; ?>
+            </div>
+            <p class="text-xs text-slate-400 mb-6">Real-time check-ins waiting for medical inspection.</p>
+
+            <?php if (empty($activeQueue)): ?>
+                <!-- Empty Queue State -->
+                <div class="flex flex-col items-center justify-center py-10 text-center">
+                    <div class="p-3 bg-obsidian-950 border border-obsidian-850 text-slate-600 rounded-2xl mb-3 shadow-inner">
+                        <i data-lucide="hourglass" class="w-8 h-8 text-slate-500 animate-pulse"></i>
+                    </div>
+                    <h4 class="text-sm font-bold text-white">Queue is empty</h4>
+                    <p class="text-xs text-slate-500 max-w-xs mt-1.5 leading-relaxed">No checked-in patients in the clinic right now. Create a visit to start.</p>
+                </div>
+            <?php else: ?>
+                <!-- Active Queue List -->
+                <div class="space-y-3.5">
+                    <?php foreach ($activeQueue as $queuedVisit): ?>
+                        <div class="p-4 bg-obsidian-950/45 border border-obsidian-850 rounded-2xl flex items-center justify-between gap-3 hover:border-brand-500/20 transition duration-150 shadow-sm">
+                            <div class="truncate">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <a href="/pets/show/<?= $queuedVisit['pet_id'] ?>" class="text-sm font-bold text-white hover:text-brand-400 transition-colors truncate">
+                                        <?= esc($queuedVisit['pet_name']) ?>
+                                    </a>
+                                    <span class="text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider <?= $queuedVisit['status'] == 2 ? 'bg-neon-amber/15 text-neon-amber border border-neon-amber/15' : 'bg-brand-600/15 text-brand-300 border border-brand-500/15' ?>">
+                                        <?= $queuedVisit['status'] == 2 ? 'Exam' : 'Queued' ?>
+                                    </span>
+                                </div>
+                                <span class="text-xs text-slate-400 block mt-1 truncate">Owner: <?= esc($queuedVisit['customer_name']) ?></span>
+                                <?php if (!empty($queuedVisit['complaints'])): ?>
+                                    <span class="text-[11px] text-slate-500 block italic mt-1.5 truncate">"<?= esc($queuedVisit['complaints']) ?>"</span>
+                                <?php endif; ?>
+                                <span class="text-[10px] text-slate-500 block mt-2 font-medium">Checked in at <?= date('H:i', strtotime($queuedVisit['checkin_time'])) ?></span>
+                            </div>
+                            
+                            <div class="flex flex-col gap-2 shrink-0 items-end">
+                                <?php if (session()->get('user_role') === 'owner' || session()->get('user_role') === 'doctor'): ?>
+                                    <a href="/visits/examine/<?= $queuedVisit['id'] ?>" class="px-3 py-1.5 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 text-white text-[11px] font-bold rounded-lg transition-premium text-center shadow-md shadow-brand-600/10 hover:shadow-brand-500/20 hover:scale-[1.02] active:scale-[0.98]">
+                                        Examine
+                                    </a>
+                                <?php endif; ?>
+                                <a href="/visits/cancel/<?= $queuedVisit['id'] ?>" onclick="return confirm('Are you sure you want to cancel this check-in?');" class="text-[10px] font-bold text-neon-pink hover:text-rose-300 px-1 py-0.5 transition">
+                                    Cancel
+                                </a>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 <?= $this->endSection() ?>

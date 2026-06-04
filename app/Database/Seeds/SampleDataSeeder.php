@@ -17,11 +17,13 @@ class SampleDataSeeder extends Seeder
         $db->table('payments')->truncate();
         $db->table('invoices')->truncate();
         $db->table('medical_record_services')->truncate();
+        $db->table('medical_record_items')->truncate();
         $db->table('medical_records')->truncate();
         $db->table('visits')->truncate();
         $db->table('pets')->truncate();
         $db->table('customers')->truncate();
         $db->table('services')->truncate();
+        $db->table('items')->truncate();
         $db->table('users')->truncate();
         $db->table('clinics')->truncate();
 
@@ -87,7 +89,72 @@ class SampleDataSeeder extends Seeder
         ];
         $db->table('services')->insertBatch($services);
 
-        // 5. Insert Customer (Budi Santoso)
+        // 5. Insert Items (Obat & Alat Medis)
+        $items = [
+            [
+                'id'          => 1,
+                'clinic_id'   => 1,
+                'code'        => 'OBT-AMOX-250',
+                'name'        => 'Amoxicillin 250mg',
+                'category'    => 'Medicine',
+                'buy_price'   => 5000.00,
+                'sell_price'  => 12000.00,
+                'stock'       => 49, // Seeded 1 used -> starting stock 50
+                'min_stock'   => 10,
+                'description' => 'Antibiotik berspektrum luas untuk infeksi bakteri.',
+                'status'      => 1,
+                'created_at'  => date('Y-m-d H:i:s'),
+                'updated_at'  => date('Y-m-d H:i:s'),
+            ],
+            [
+                'id'          => 2,
+                'clinic_id'   => 1,
+                'code'        => 'OBT-PCT-SYR',
+                'name'        => 'Paracetamol Syrup 60ml',
+                'category'    => 'Medicine',
+                'buy_price'   => 8000.00,
+                'sell_price'  => 20000.00,
+                'stock'       => 30,
+                'min_stock'   => 5,
+                'description' => 'Analgesik dan antipiretik untuk meredakan demam.',
+                'status'      => 1,
+                'created_at'  => date('Y-m-d H:i:s'),
+                'updated_at'  => date('Y-m-d H:i:s'),
+            ],
+            [
+                'id'          => 3,
+                'clinic_id'   => 1,
+                'code'        => 'ALT-SYR-3ML',
+                'name'        => 'Disposable Syringe 3ml',
+                'category'    => 'Supplies',
+                'buy_price'   => 1500.00,
+                'sell_price'  => 5000.00,
+                'stock'       => 98, // Seeded 2 used -> starting stock 100
+                'min_stock'   => 20,
+                'description' => 'Suntikan steril sekali pakai ukuran 3ml.',
+                'status'      => 1,
+                'created_at'  => date('Y-m-d H:i:s'),
+                'updated_at'  => date('Y-m-d H:i:s'),
+            ],
+            [
+                'id'          => 4,
+                'clinic_id'   => 1,
+                'code'        => 'ALT-IVC-22G',
+                'name'        => 'IV Catheter 22G',
+                'category'    => 'Supplies',
+                'buy_price'   => 12000.00,
+                'sell_price'  => 25000.00,
+                'stock'       => 14, // Seeded 1 used -> starting stock 15
+                'min_stock'   => 5,
+                'description' => 'Jarum infus steril sekali pakai ukuran 22G.',
+                'status'      => 1,
+                'created_at'  => date('Y-m-d H:i:s'),
+                'updated_at'  => date('Y-m-d H:i:s'),
+            ],
+        ];
+        $db->table('items')->insertBatch($items);
+
+        // 6. Insert Customer (Budi Santoso)
         $customerData = [
             'id'         => 1,
             'clinic_id'  => 1,
@@ -100,7 +167,7 @@ class SampleDataSeeder extends Seeder
         ];
         $db->table('customers')->insert($customerData);
 
-        // 6. Insert 2 Pets for Customer Budi Santoso (Luna & Rocky)
+        // 7. Insert 2 Pets for Customer Budi Santoso (Luna & Rocky)
         $pets = [
             [
                 'id'          => 1,
@@ -130,7 +197,9 @@ class SampleDataSeeder extends Seeder
         $db->table('pets')->insertBatch($pets);
 
         // ----------------------------------------------------
-        // CASE 1: Luna (Cat) - Needs General Consult (150.000) & Grooming (25.000)
+        // CASE 1: Luna (Cat) - General Consult (150.000) & Grooming (25.000)
+        // Prescribed Medicines: Amoxicillin 250mg (12.000) & Disposable Syringe 3ml (5.000)
+        // Total Invoice: 192.000
         // ----------------------------------------------------
 
         // Insert Visit 1
@@ -158,7 +227,7 @@ class SampleDataSeeder extends Seeder
             'pet_id'         => 1,
             'user_id'        => 1,
             'diagnosis'      => 'Otitis Externa (Infeksi Telinga Luar) & Dehidrasi Ringan',
-            'treatment_plan' => 'Pembersihan telinga dan terapi cairan infus subkutan',
+            'treatment_plan' => 'Pembersihan telinga dan terapi cairan infus subkutan dengan antibiotik oral',
             'created_at'     => date('Y-m-d H:i:s'),
             'updated_at'     => date('Y-m-d H:i:s'),
         ];
@@ -179,14 +248,33 @@ class SampleDataSeeder extends Seeder
         ];
         $db->table('medical_record_services')->insertBatch($record1Services);
 
-        // Generate Invoice 1 (Total: 175.000)
+        // Insert Medical Record Items 1
+        $record1Items = [
+            [
+                'medical_record_id' => 1,
+                'item_id'           => 1, // OBT-AMOX-250
+                'quantity'          => 1,
+                'buy_price'         => 5000.00,
+                'sell_price'        => 12000.00,
+            ],
+            [
+                'medical_record_id' => 1,
+                'item_id'           => 3, // ALT-SYR-3ML
+                'quantity'          => 1,
+                'buy_price'         => 1500.00,
+                'sell_price'        => 5000.00,
+            ]
+        ];
+        $db->table('medical_record_items')->insertBatch($record1Items);
+
+        // Generate Invoice 1 (Total: 192.000)
         $invoice1 = [
             'id'                => 1,
             'clinic_id'         => 1,
             'customer_id'       => 1,
             'medical_record_id' => 1,
             'invoice_number'    => 'INV-' . date('Ymd') . '-00001',
-            'total_amount'      => 175000.00,
+            'total_amount'      => 192000.00,
             'status'            => 1, // Unpaid
             'created_at'        => date('Y-m-d H:i:s'),
             'updated_at'        => date('Y-m-d H:i:s'),
@@ -194,7 +282,9 @@ class SampleDataSeeder extends Seeder
         $db->table('invoices')->insert($invoice1);
 
         // ----------------------------------------------------
-        // CASE 2: Rocky (Dog) - Needs Grooming (25.000) & Vaksinasi Rabies (250.000)
+        // CASE 2: Rocky (Dog) - Grooming (25.000) & Vaksinasi Rabies (250.000)
+        // Consumed Items: Syringe 3ml (5.000) & IV Catheter 22G (25.000)
+        // Total Invoice: 305.000
         // ----------------------------------------------------
 
         // Insert Visit 2
@@ -243,14 +333,33 @@ class SampleDataSeeder extends Seeder
         ];
         $db->table('medical_record_services')->insertBatch($record2Services);
 
-        // Generate Invoice 2 (Total: 275.000)
+        // Insert Medical Record Items 2
+        $record2Items = [
+            [
+                'medical_record_id' => 2,
+                'item_id'           => 3, // ALT-SYR-3ML
+                'quantity'          => 1,
+                'buy_price'         => 1500.00,
+                'sell_price'        => 5000.00,
+            ],
+            [
+                'medical_record_id' => 2,
+                'item_id'           => 4, // ALT-IVC-22G
+                'quantity'          => 1,
+                'buy_price'         => 12000.00,
+                'sell_price'        => 25000.00,
+            ]
+        ];
+        $db->table('medical_record_items')->insertBatch($record2Items);
+
+        // Generate Invoice 2 (Total: 305.000)
         $invoice2 = [
             'id'                => 2,
             'clinic_id'         => 1,
             'customer_id'       => 1,
             'medical_record_id' => 2,
             'invoice_number'    => 'INV-' . date('Ymd') . '-00002',
-            'total_amount'      => 275000.00,
+            'total_amount'      => 305000.00,
             'status'            => 1, // Unpaid
             'created_at'        => date('Y-m-d H:i:s'),
             'updated_at'        => date('Y-m-d H:i:s'),
