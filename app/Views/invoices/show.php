@@ -16,12 +16,12 @@
             <span class="text-white font-semibold"><?= esc($invoice['invoice_number']) ?></span>
         </div>
         <div class="flex items-center gap-2">
-            <a href="/invoices" class="px-3.5 py-2 bg-obsidian-900 hover:bg-obsidian-800 text-slate-300 hover:text-white rounded-xl text-xs font-bold border border-obsidian-800 transition-premium inline-flex items-center gap-1.5">
+            <a href="/invoices" class="px-3.5 py-2 bg-obsidian-900 hover:bg-obsidian-800 text-slate-300 hover:text-neutral-50 dark:hover:text-white rounded-xl text-xs font-bold border border-obsidian-800 transition-premium inline-flex items-center gap-1.5">
                 <i data-lucide="arrow-left" class="w-4 h-4"></i>
                 <span>Back to List</span>
             </a>
             
-            <button onclick="window.print()" class="px-3.5 py-2 bg-obsidian-900 hover:bg-obsidian-800 text-slate-300 hover:text-white rounded-xl text-xs font-bold border border-obsidian-800 transition-premium inline-flex items-center gap-1.5">
+            <button onclick="window.print()" class="px-3.5 py-2 bg-obsidian-900 hover:bg-obsidian-800 text-slate-300 hover:text-neutral-50 dark:hover:text-white rounded-xl text-xs font-bold border border-obsidian-800 transition-premium inline-flex items-center gap-1.5">
                 <i data-lucide="printer" class="w-4 h-4"></i>
                 <span>Print Invoice</span>
             </button>
@@ -162,28 +162,68 @@
                                                 <?= ($petIdx + 1) ?>. <?= esc($gp['pet_name']) ?> (<?= esc($gp['pet_species']) ?>):
                                             </td>
                                         </tr>
+                                        <!-- Services -->
+                                        <tr class="bg-obsidian-950/45">
+                                            <td colspan="4" class="px-6 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                                Services & Procedures Rendered:
+                                            </td>
+                                        </tr>
                                         <?php if (empty($gp['services'])): ?>
                                             <tr>
-                                                <td colspan="4" class="px-6 py-2 text-xs text-slate-500 italic">
-                                                    No services billed for this pet.
+                                                <td colspan="4" class="px-8 py-2 text-xs text-slate-500 italic">
+                                                    No services billed.
                                                 </td>
                                             </tr>
                                         <?php else: ?>
                                             <?php foreach ($gp['services'] as $srv): 
                                                 $amount = $srv['price'] * $srv['quantity'];
                                             ?>
-                                                <tr>
-                                                    <td class="px-6 py-3">
-                                                        <span class="text-white font-semibold block text-xs"><?= esc($srv['name']) ?></span>
+                                                <tr class="hover:bg-obsidian-900/10">
+                                                    <td class="px-8 py-2.5">
+                                                        <span class="text-white font-medium block text-xs"><?= esc($srv['name']) ?></span>
                                                         <span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mt-0.5"><?= esc($srv['code']) ?></span>
                                                     </td>
-                                                    <td class="px-4 py-3 text-right text-slate-300">
+                                                    <td class="px-4 py-2.5 text-right text-slate-350">
                                                         Rp<?= number_format($srv['price'], 0, ',', '.') ?>
                                                     </td>
-                                                    <td class="px-4 py-3 text-center text-slate-300 font-semibold">
+                                                    <td class="px-4 py-2.5 text-center text-slate-350 font-semibold">
                                                         <?= esc($srv['quantity']) ?>
                                                     </td>
-                                                    <td class="px-4 py-3 text-right text-white font-bold">
+                                                    <td class="px-4 py-2.5 text-right text-white font-bold">
+                                                        Rp<?= number_format($amount, 0, ',', '.') ?>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+
+                                        <!-- Medicines & Supplies -->
+                                        <tr class="bg-obsidian-950/45">
+                                            <td colspan="4" class="px-6 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                                Medicines & Disposable Supplies Used:
+                                            </td>
+                                        </tr>
+                                        <?php if (empty($gp['items'])): ?>
+                                            <tr>
+                                                <td colspan="4" class="px-8 py-2 text-xs text-slate-500 italic">
+                                                    No medicines or supplies used.
+                                                </td>
+                                            </tr>
+                                        <?php else: ?>
+                                            <?php foreach ($gp['items'] as $itm): 
+                                                $amount = $itm['price'] * $itm['quantity'];
+                                            ?>
+                                                <tr class="hover:bg-obsidian-900/10">
+                                                    <td class="px-8 py-2.5">
+                                                        <span class="text-white font-medium block text-xs"><?= esc($itm['name']) ?></span>
+                                                        <span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mt-0.5"><?= esc($itm['code']) ?></span>
+                                                    </td>
+                                                    <td class="px-4 py-2.5 text-right text-slate-350">
+                                                        Rp<?= number_format($itm['price'], 0, ',', '.') ?>
+                                                    </td>
+                                                    <td class="px-4 py-2.5 text-center text-slate-350 font-semibold">
+                                                        <?= esc($itm['quantity']) ?>
+                                                    </td>
+                                                    <td class="px-4 py-2.5 text-right text-white font-bold">
                                                         Rp<?= number_format($amount, 0, ',', '.') ?>
                                                     </td>
                                                 </tr>
@@ -194,7 +234,7 @@
                             </tbody>
                             <tfoot class="bg-obsidian-950/80 border-t border-obsidian-800 text-xs font-bold">
                                 <tr>
-                                    <td colspan="3" class="px-4 py-3 text-right text-slate-450 uppercase tracking-wider">Total Services Amount:</td>
+                                    <td colspan="3" class="px-4 py-3 text-right text-slate-450 uppercase tracking-wider">Total Invoice Amount:</td>
                                     <td class="px-4 py-3 text-right text-white">
                                         Rp<?= number_format($totalInvoiceAmount, 0, ',', '.') ?>
                                     </td>
@@ -283,7 +323,7 @@
                     <i data-lucide="credit-card" class="w-5 h-5 text-brand-500"></i>
                     <span>Record Payment Transaction</span>
                 </h3>
-                <button @click="showPaymentModal = false" class="text-slate-500 hover:text-white transition">
+                <button @click="showPaymentModal = false" class="text-slate-500 hover:text-neutral-50 dark:hover:text-white transition">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>

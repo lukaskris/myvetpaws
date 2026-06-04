@@ -21,12 +21,15 @@ MyVetPaws is a modern, high-performance, and visually stunning web application b
 * **Smart Patient Filtering**: Alpine.js dynamically filters registered pets on-the-fly when choosing a customer.
 * **Diagnostic & Treatment Logs**: Record exact diagnosis reports, detailed treatment plans, and schedule retroactive/future check-ups.
 
-### 💊 Medical Services & Items Inventory
-* **Services**: Custom service logs (Grooming, Consultation, Rabies Vaccination, etc.) with automated pricing.
-* **Prescriptions & Items**: Support for custom medical items (medicines, vaccines, and supplements like Vitamin C) and integrating them directly into visit services.
+### 💊 Medical Services & Items Inventory Tracking (Obat & Alat Medis)
+* **Services CRUD**: Configure clinic services (Grooming, Consultation, Surgeries, etc.) with automated pricing.
+* **Medicines & Supplies CRUD**: Full inventory management for physical medical items, vaccines, syringes, and disposable supplies. Tracks purchase cost (`buy_price`), selling price (`sell_price`), margin, current stock levels, and safety thresholds (`min_stock`).
+* **Auto-Depletion**: Prescribing items during a patient's examination automatically decrements stock levels in the database.
+* **Restock Alerts**: Features visual indicators (Available, Low Stock, Out of Stock) throughout catalogs and a dedicated **"Restock Required"** widget on the Owner Dashboard showing items below safety thresholds.
 
 ### 🧾 Smart Consolidated Invoices & Billing
 * **Multi-Pet Consolidated Invoices**: Generates a single unified invoice PDF for customers checking in multiple pets on the same day.
+* **Separated billing**: Separates professional fees/procedures from physical medicines and disposable items on invoices for maximum clarity.
 * **Clean Print Templates**: Clean PDF templates optimized for printers and digital downloads (removed generic branding watermarks for a premium feel).
 * **Payment Tracking**: Record partial payments, calculate remaining balances, and track payment history instantly.
 

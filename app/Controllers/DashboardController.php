@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\VisitsModel;
 use App\Models\CustomersModel;
 use App\Models\PetsModel;
+use App\Models\ItemsModel;
 
 class DashboardController extends BaseController
 {
@@ -65,6 +66,13 @@ class DashboardController extends BaseController
         $outstandingPayments = isset($outstandingResult['total_outstanding']) ? (float)$outstandingResult['total_outstanding'] : 0.00;
         if ($outstandingPayments < 0) $outstandingPayments = 0.00;
 
+        // Query low stock items
+        $itemsModel = new ItemsModel();
+        $lowStockItems = $itemsModel->where('stock <= min_stock', null, false)
+                                    ->where('status', 1)
+                                    ->orderBy('stock', 'ASC')
+                                    ->findAll();
+
         $data = [
             'today_visits'         => $todayVisits,
             'active_customers'     => $activeCustomers,
@@ -72,6 +80,7 @@ class DashboardController extends BaseController
             'revenue_summary'      => $revenueSummary,
             'outstanding_payments' => $outstandingPayments,
             'activeQueue'          => $activeQueue,
+            'lowStockItems'        => $lowStockItems,
         ];
 
         return view('dashboard/owner', $data);

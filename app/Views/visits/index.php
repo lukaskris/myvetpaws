@@ -309,14 +309,14 @@
                 <div class="flex items-center space-x-3">
                     <h3 class="text-lg font-bold text-white tracking-tight" x-text="`${monthNames[currentMonth]} ${currentYear}`"></h3>
                     <div class="flex items-center space-x-1.5 bg-obsidian-950/80 border border-obsidian-850/60 rounded-xl p-0.5 shadow-sm">
-                        <button @click="prevMonth()" class="p-1.5 hover:text-white text-slate-400 hover:bg-obsidian-900 rounded-lg transition cursor-pointer">
+                        <button @click="prevMonth()" class="p-1.5 hover:text-neutral-50 dark:hover:text-white text-slate-400 hover:bg-obsidian-900 rounded-lg transition cursor-pointer">
                             <i data-lucide="chevron-left" class="w-4 h-4"></i>
                         </button>
                         <button @click="currentYear = new Date().getFullYear(); currentMonth = new Date().getMonth(); $nextTick(() => { lucide.createIcons(); })" 
-                                class="px-2 py-1 text-[10px] font-bold text-brand-400 hover:text-white rounded-lg transition hover:bg-obsidian-900 cursor-pointer">
+                                class="px-2 py-1 text-[10px] font-bold text-brand-400 hover:text-neutral-50 dark:hover:text-white rounded-lg transition hover:bg-obsidian-900 cursor-pointer">
                             Today
                         </button>
-                        <button @click="nextMonth()" class="p-1.5 hover:text-white text-slate-400 hover:bg-obsidian-900 rounded-lg transition cursor-pointer">
+                        <button @click="nextMonth()" class="p-1.5 hover:text-neutral-50 dark:hover:text-white text-slate-400 hover:bg-obsidian-900 rounded-lg transition cursor-pointer">
                             <i data-lucide="chevron-right" class="w-4 h-4"></i>
                         </button>
                     </div>

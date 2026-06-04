@@ -46,6 +46,16 @@ $routes->group('', ['filter' => 'auth'], function(RouteCollection $routes) {
         $routes->post('delete/(:num)', 'ServiceController::delete/$1');
     });
 
+    // Inventory Items Management (Listing available to all roles, editing restricted to Owner)
+    $routes->get('items', 'ItemController::index');
+    $routes->group('items', ['filter' => 'role:owner'], function(RouteCollection $routes) {
+        $routes->get('create', 'ItemController::create');
+        $routes->post('create', 'ItemController::store');
+        $routes->get('edit/(:num)', 'ItemController::edit/$1');
+        $routes->post('edit/(:num)', 'ItemController::update/$1');
+        $routes->post('delete/(:num)', 'ItemController::delete/$1');
+    });
+
     // Customer Management
     $routes->group('customers', function(RouteCollection $routes) {
         $routes->get('/', 'CustomerController::index');

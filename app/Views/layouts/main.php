@@ -161,6 +161,10 @@
                     <i data-lucide="activity" class="w-4 h-4"></i>
                     <span>Services</span>
                 </a>
+                <a href="/items" id="nav-items" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-premium <?= (strpos(current_url(), base_url('items')) !== false) ? 'bg-brand-600/15 text-brand-300 border-l-2 border-brand-600 shadow-inner' : 'text-slate-400 hover:text-white hover:bg-obsidian-800/40' ?>">
+                    <i data-lucide="package" class="w-4 h-4"></i>
+                    <span>Inventory (Obat & Alat)</span>
+                </a>
                 
                 <?php if (session()->get('user_role') === 'owner'): ?>
                 <a href="/employees" id="nav-staff" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-premium <?= (strpos(current_url(), base_url('employees')) !== false) ? 'bg-brand-600/15 text-brand-300 border-l-2 border-brand-600 shadow-inner' : 'text-slate-400 hover:text-white hover:bg-obsidian-800/40' ?>">
@@ -232,7 +236,7 @@
             <!-- Quick Actions -->
             <div class="flex items-center space-x-3.5">
                 <!-- Theme Toggle Button -->
-                <button id="theme-toggle" class="p-2 bg-obsidian-900/40 border border-obsidian-800 hover:border-obsidian-750 text-slate-400 hover:text-white rounded-xl transition duration-150 inline-flex items-center justify-center cursor-pointer" aria-label="Toggle Theme">
+                <button id="theme-toggle" class="p-2 bg-obsidian-900/40 border border-obsidian-800 hover:border-obsidian-750 text-slate-400 hover:text-neutral-50 dark:hover:text-white rounded-xl transition duration-150 inline-flex items-center justify-center cursor-pointer" aria-label="Toggle Theme">
                     <i data-lucide="sun" class="w-4 h-4 dark:hidden"></i>
                     <i data-lucide="moon" class="w-4 h-4 hidden dark:block text-brand-400"></i>
                 </button>

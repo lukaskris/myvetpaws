@@ -235,50 +235,91 @@
 
     </div>
 
-    <!-- Top Performing Services -->
-    <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-lg">
-        <h3 class="text-sm font-bold text-white uppercase tracking-wider border-b border-neutral-800 pb-3 mb-4">Top Billing Services</h3>
+    <!-- Top Performing Services and Items -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        <?php if (empty($topServices)): ?>
-            <div class="p-6 bg-neutral-950 border border-neutral-850 rounded-2xl text-center">
-                <p class="text-xs text-neutral-500">No medical billing activities have been recorded yet.</p>
-            </div>
-        <?php else: ?>
-            <div class="overflow-hidden border border-neutral-850 rounded-2xl">
-                <table class="min-w-full divide-y divide-neutral-800 bg-neutral-950/20 text-xs">
-                    <thead class="bg-neutral-950/80">
-                        <tr>
-                            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-neutral-400 uppercase tracking-wider">Service Name</th>
-                            <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-neutral-400 uppercase tracking-wider">Catalog Code</th>
-                            <th scope="col" class="px-6 py-4 class text-right text-xs font-bold text-neutral-400 uppercase tracking-wider">Unit Price</th>
-                            <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-neutral-400 uppercase tracking-wider">Quantity Rendered</th>
-                            <th scope="col" class="px-6 py-4 text-right text-xs font-bold text-neutral-400 uppercase tracking-wider">Total Revenue Generated</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-neutral-800">
-                        <?php foreach ($topServices as $srv): ?>
-                            <tr class="hover:bg-neutral-800/10 transition duration-150">
-                                <td class="px-6 py-4 whitespace-nowrap text-white font-semibold">
-                                    <?= esc($srv['name']) ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-neutral-400 font-mono font-bold uppercase text-[10px]">
-                                    <?= esc($srv['code']) ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-neutral-350">
-                                    Rp<?= number_format($srv['price'], 0, ',', '.') ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center text-neutral-350">
-                                    <?= esc($srv['total_qty']) ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-brand-400 font-bold">
-                                    Rp<?= number_format($srv['total_revenue'], 0, ',', '.') ?>
-                                </td>
+        <!-- Top Performing Services -->
+        <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-lg">
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider border-b border-neutral-800 pb-3 mb-4">Top Billing Services</h3>
+            
+            <?php if (empty($topServices)): ?>
+                <div class="p-6 bg-neutral-950 border border-neutral-850 rounded-2xl text-center">
+                    <p class="text-xs text-neutral-500">No medical billing activities recorded yet.</p>
+                </div>
+            <?php else: ?>
+                <div class="overflow-hidden border border-neutral-850 rounded-2xl">
+                    <table class="min-w-full divide-y divide-neutral-800 bg-neutral-950/20 text-xs">
+                        <thead class="bg-neutral-950/80">
+                            <tr>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-neutral-400 uppercase tracking-wider">Service Name</th>
+                                <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-neutral-400 uppercase tracking-wider">Qty</th>
+                                <th scope="col" class="px-6 py-4 text-right text-xs font-bold text-neutral-400 uppercase tracking-wider">Revenue</th>
                             </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php endif; ?>
+                        </thead>
+                        <tbody class="divide-y divide-neutral-800">
+                            <?php foreach ($topServices as $srv): ?>
+                                <tr class="hover:bg-neutral-800/10 transition duration-150">
+                                    <td class="px-6 py-4 whitespace-nowrap text-white font-semibold">
+                                        <?= esc($srv['name']) ?>
+                                        <div class="text-[9px] text-neutral-500 font-mono mt-0.5"><?= esc($srv['code']) ?></div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-center text-neutral-350">
+                                        <?= esc($srv['total_qty']) ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-brand-400 font-bold">
+                                        Rp<?= number_format($srv['total_revenue'], 0, ',', '.') ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Top Performing Items (Medicine & Supplies) -->
+        <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-lg">
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider border-b border-neutral-800 pb-3 mb-4">Top Medicines & Supplies</h3>
+            
+            <?php if (empty($topItems)): ?>
+                <div class="p-6 bg-neutral-950 border border-neutral-850 rounded-2xl text-center">
+                    <p class="text-xs text-neutral-500">No medicine/supply usage recorded yet.</p>
+                </div>
+            <?php else: ?>
+                <div class="overflow-hidden border border-neutral-850 rounded-2xl">
+                    <table class="min-w-full divide-y divide-neutral-800 bg-neutral-950/20 text-xs">
+                        <thead class="bg-neutral-950/80">
+                            <tr>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-neutral-400 uppercase tracking-wider">Item Name</th>
+                                <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-neutral-400 uppercase tracking-wider">Qty Sold</th>
+                                <th scope="col" class="px-6 py-4 text-right text-xs font-bold text-neutral-400 uppercase tracking-wider">Revenue</th>
+                                <th scope="col" class="px-6 py-4 text-right text-xs font-bold text-neutral-400 uppercase tracking-wider">Est. Profit</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-neutral-800">
+                            <?php foreach ($topItems as $item): ?>
+                                <tr class="hover:bg-neutral-800/10 transition duration-150">
+                                    <td class="px-6 py-4 whitespace-nowrap text-white font-semibold">
+                                        <?= esc($item['name']) ?>
+                                        <div class="text-[9px] text-neutral-500 font-mono mt-0.5"><?= esc($item['code']) ?></div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-center text-neutral-350">
+                                        <?= esc($item['total_qty']) ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-neutral-350">
+                                        Rp<?= number_format($item['total_revenue'], 0, ',', '.') ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-emerald-450 font-bold">
+                                        Rp<?= number_format($item['total_profit'], 0, ',', '.') ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+
     </div>
 </div>
 <?= $this->endSection() ?>
