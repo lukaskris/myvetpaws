@@ -69,6 +69,8 @@
             text-transform: uppercase;
             border-radius: 4px;
             letter-spacing: 0.3px;
+            line-height: 1;
+            vertical-align: middle;
         }
         .status-paid {
             background-color: #d1fae5;
@@ -259,18 +261,28 @@
             <!-- Invoice Meta Info -->
             <td style="width: 35%; text-align: right;">
                 <div class="invoice-title">Invoice</div>
-                <div class="invoice-meta">
-                    Invoice No: <strong style="color: #111827;"><?= esc($invoice['invoice_number']) ?></strong><br>
-                    Date: <?= date('M j, Y', strtotime($invoice['created_at'])) ?><br>
-                    Status: 
-                    <?php if ($invoice['status'] == 2): ?>
-                        <span class="status-badge status-paid">Paid</span>
-                    <?php elseif ($invoice['status'] == 3): ?>
-                        <span class="status-badge status-partial">Partially Paid</span>
-                    <?php else: ?>
-                        <span class="status-badge status-unpaid">Unpaid</span>
-                    <?php endif; ?>
-                </div>
+                <table style="margin-left: auto; margin-top: 8px; border-collapse: collapse; font-size: 10px; color: #4b5563; text-align: right; background: transparent; border: none;">
+                    <tr>
+                        <td style="padding: 2px 0; border: none; background: transparent;">Invoice No:</td>
+                        <td style="padding: 2px 0 2px 10px; font-weight: bold; color: #111827; border: none; background: transparent;"><?= esc($invoice['invoice_number']) ?></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 2px 0; border: none; background: transparent;">Date:</td>
+                        <td style="padding: 2px 0 2px 10px; border: none; background: transparent;"><?= date('M j, Y', strtotime($invoice['created_at'])) ?></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 2px 0; vertical-align: middle; border: none; background: transparent;">Status:</td>
+                        <td style="padding: 2px 0 2px 10px; vertical-align: middle; border: none; background: transparent;">
+                            <?php if ($invoice['status'] == 2): ?>
+                                <span class="status-badge status-paid">Paid</span>
+                            <?php elseif ($invoice['status'] == 3): ?>
+                                <span class="status-badge status-partial">Partially Paid</span>
+                            <?php else: ?>
+                                <span class="status-badge status-unpaid">Unpaid</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </table>
             </td>
         </tr>
     </table>
