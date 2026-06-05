@@ -239,14 +239,22 @@
         <tr>
             <!-- Clinic Info -->
             <td style="width: 65%;">
-                <?php if (!empty($logoBase64)): ?>
-                    <img class="clinic-logo" src="<?= $logoBase64 ?>" alt="Logo">
-                <?php endif; ?>
-                <div class="clinic-name"><?= esc($clinic['name'] ?? 'MyVetPaws') ?></div>
-                <div class="clinic-details">
-                    <?= esc($clinic['address'] ?: 'Clinic Address') ?><?= !empty($clinic['city']) ? ', ' . esc($clinic['city']) : '' ?><?= !empty($clinic['province']) ? ', ' . esc($clinic['province']) : '' ?><br>
-                    Phone: <?= esc($clinic['phone'] ?: '—') ?> | Email: <?= esc($clinic['email'] ?: 'contact@myvetpaws.com') ?>
-                </div>
+                <table style="border-collapse: collapse; border: none; margin: 0; padding: 0; background: transparent;">
+                    <tr>
+                        <?php if (!empty($logoBase64)): ?>
+                            <td style="vertical-align: middle; padding-right: 15px; border: none; padding-bottom: 0; background: transparent;">
+                                <img class="clinic-logo" src="<?= $logoBase64 ?>" style="max-height: 50px; max-width: 120px; object-fit: contain; display: block; margin-bottom: 0;" alt="Logo">
+                            </td>
+                        <?php endif; ?>
+                        <td style="vertical-align: middle; border: none; padding-bottom: 0; background: transparent;">
+                            <div class="clinic-name"><?= esc($clinic['name'] ?? 'MyVetPaws') ?></div>
+                            <div class="clinic-details">
+                                <?= esc($clinic['address'] ?: 'Clinic Address') ?><?= !empty($clinic['city']) ? ', ' . esc($clinic['city']) : '' ?><?= !empty($clinic['province']) ? ', ' . esc($clinic['province']) : '' ?><br>
+                                Phone: <?= esc($clinic['phone'] ?: '—') ?> | Email: <?= esc($clinic['email'] ?: 'contact@myvetpaws.com') ?>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
             </td>
             <!-- Invoice Meta Info -->
             <td style="width: 35%; text-align: right;">
