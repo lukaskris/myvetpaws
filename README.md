@@ -22,7 +22,7 @@ MyVetPaws is a modern, high-performance, and visually stunning web application b
 * **Diagnostic & Treatment Logs**: Record exact diagnosis reports, detailed treatment plans, and schedule retroactive/future check-ups.
 
 ### 🗺️ Clinic Branding & Location Pinpoint (New)
-* **Branding Asset Uploads**: Upload clinic branding assets (Logo and Banner) dynamically with real-time browser previewing, file validation, and automatic sizing cleanup.
+* **Branding Asset Uploads**: Upload clinic branding assets (Logo and Banner) dynamically with real-time browser previewing, file validation (accepts up to 5MB, automatically compresses and converts to optimized WebP format to save server storage).
 * **Interactive Leaflet Map Pinpoint**: Includes an interactive Leaflet.js-powered map for easy location coordination (especially tailored for non-technical users).
 * **Bi-Directional Coordinate Syncing**: Drag-and-drop the map marker to auto-update Latitude/Longitude input fields instantly, or type coordinates manually to shift the marker.
 * **Geocoding Address Search**: Integrated address search bar querying OpenStreetMap Nominatim API to locate addresses instantly and pin coordinates automatically.
@@ -36,7 +36,7 @@ MyVetPaws is a modern, high-performance, and visually stunning web application b
 ### 🧾 Smart Consolidated Invoices & Billing
 * **Multi-Pet Consolidated Invoices**: Generates a single unified invoice PDF for customers checking in multiple pets on the same day.
 * **Separated billing**: Separates professional fees/procedures from physical medicines and disposable items on invoices for maximum clarity.
-* **Clean Print Templates**: Clean PDF templates optimized for printers and digital downloads (removed generic branding watermarks for a premium feel).
+* **Clean Print Templates**: Clean PDF templates optimized for landscape printing and digital downloads, including the clinic logo (removed generic branding watermarks for a premium feel).
 * **Payment Tracking**: Record partial payments, calculate remaining balances, and track payment history instantly.
 
 ---
