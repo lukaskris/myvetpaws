@@ -331,6 +331,20 @@ class InvoiceController extends BaseController
         $remainingBalance = $totalInvoiceAmount - $totalPaid;
         if ($remainingBalance < 0.01) $remainingBalance = 0.00;
 
+        // Fetch clinic details for the invoice header
+        $clinicModel = new \App\Models\ClinicsModel();
+        $clinic = $clinicModel->find($invoice['clinic_id'] ?? session()->get('clinic_id'));
+
+        // Prepare base64 logo if available
+        $logoBase64 = '';
+        if ($clinic && !empty($clinic['logo']) && file_exists(FCPATH . $clinic['logo'])) {
+            $logoPath = FCPATH . $clinic['logo'];
+            $logoData = @file_get_contents($logoPath);
+            if ($logoData !== false) {
+                $logoBase64 = 'data:' . mime_content_type($logoPath) . ';base64,' . base64_encode($logoData);
+            }
+        }
+
         // Render PDF HTML view
         $html = view('invoices/pdf_template', [
             'invoice'            => $invoice,
@@ -339,6 +353,8 @@ class InvoiceController extends BaseController
             'totalInvoiceAmount' => $totalInvoiceAmount,
             'totalPaid'          => $totalPaid,
             'remainingBalance'   => $remainingBalance,
+            'clinic'             => $clinic,
+            'logoBase64'         => $logoBase64,
         ]);
 
         // Setup Dompdf options
@@ -349,7 +365,7 @@ class InvoiceController extends BaseController
 
         $dompdf = new \Dompdf\Dompdf($options);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('a4', 'portrait');
+        $dompdf->setPaper('a4', 'landscape');
         $dompdf->render();
 
         // Format clean filename (e.g. invoice-INV-001.pdf)

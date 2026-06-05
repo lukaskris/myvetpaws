@@ -72,11 +72,12 @@ class AuthController extends BaseController
             'logged_in'  => true,
         ]);
 
-        // Get Clinic details and save clinic_name in session
+        // Get Clinic details and save clinic_name and clinic_logo in session
         $clinicsModel = new ClinicsModel();
         $clinic = $clinicsModel->find($user['clinic_id']);
         if ($clinic) {
             $session->set('clinic_name', $clinic['name']);
+            $session->set('clinic_logo', $clinic['logo']);
         }
 
         // Handle Remember Me Cookie

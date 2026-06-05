@@ -26,13 +26,18 @@ class AuthFilter implements FilterInterface
             $user = $usersModel->disableTenantScope()->where('remember_token', $rememberToken)->first();
 
             if ($user && $user['status'] == 1) {
+                $clinicModel = new \App\Models\ClinicsModel();
+                $clinic = $clinicModel->find($user['clinic_id']);
+
                 // Establish session
                 $session->set([
-                    'user_id'    => $user['id'],
-                    'clinic_id'  => $user['clinic_id'],
-                    'user_name'  => $user['name'],
-                    'user_role'  => $user['role'],
-                    'logged_in'  => true,
+                    'user_id'     => $user['id'],
+                    'clinic_id'   => $user['clinic_id'],
+                    'user_name'   => $user['name'],
+                    'user_role'   => $user['role'],
+                    'logged_in'   => true,
+                    'clinic_name' => $clinic ? $clinic['name'] : 'MyVetPaws',
+                    'clinic_logo' => $clinic ? $clinic['logo'] : null,
                 ]);
                 return;
             } else {

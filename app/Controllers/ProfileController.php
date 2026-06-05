@@ -227,8 +227,12 @@ class ProfileController extends BaseController
         log_message('error', 'Profile Update Request: Updating clinic ID ' . $clinicId . ' with data: ' . json_encode($clinicData));
         $clinicModel->update($clinicId, $clinicData);
 
-        // Update session name for instant navigation feedback
-        session()->set('clinic_name', $clinicData['name']);
+        // Update session info for instant navigation feedback
+        $updatedClinic = $clinicModel->find($clinicId);
+        if ($updatedClinic) {
+            session()->set('clinic_name', $updatedClinic['name']);
+            session()->set('clinic_logo', $updatedClinic['logo']);
+        }
 
         return redirect()->to('/profile')->with('success', 'Clinic profile updated successfully.');
     }

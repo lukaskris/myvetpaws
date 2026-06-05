@@ -118,9 +118,13 @@
 
             <!-- Clinic Selector/Header -->
             <div class="flex items-center space-x-3 px-3 py-2 border border-obsidian-800/80 rounded-2xl bg-obsidian-950/60 shadow-sm">
-                <div class="h-9 w-9 bg-gradient-to-br from-brand-600 to-brand-700 rounded-xl flex items-center justify-center font-bold text-white shadow-lg shadow-brand-600/20">
-                    <?= substr(session()->get('clinic_name') ?? 'M', 0, 1) ?>
-                </div>
+                <?php if (!empty(session()->get('clinic_logo')) && file_exists(FCPATH . session()->get('clinic_logo'))): ?>
+                    <img class="h-9 w-9 object-cover rounded-xl shadow-md shadow-brand-600/10 shrink-0" src="<?= base_url(esc(session()->get('clinic_logo'))) ?>" alt="Clinic Logo">
+                <?php else: ?>
+                    <div class="h-9 w-9 bg-gradient-to-br from-brand-600 to-brand-700 rounded-xl flex items-center justify-center font-bold text-white shadow-lg shadow-brand-600/20 shrink-0">
+                        <?= substr(session()->get('clinic_name') ?? 'M', 0, 1) ?>
+                    </div>
+                <?php endif; ?>
                 <div class="truncate">
                     <div class="text-sm font-bold text-white leading-tight truncate"><?= esc(session()->get('clinic_name') ?? 'MyVetPaws') ?></div>
                     <div class="text-[10px] text-slate-400 font-semibold tracking-wider uppercase mt-0.5">Workspace</div>

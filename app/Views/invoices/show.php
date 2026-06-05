@@ -21,7 +21,7 @@
                 <span>Back to List</span>
             </a>
             
-            <button onclick="window.print()" class="px-3.5 py-2 bg-obsidian-900 hover:bg-obsidian-800 text-slate-300 hover:text-neutral-50 dark:hover:text-white rounded-xl text-xs font-bold border border-obsidian-800 transition-premium inline-flex items-center gap-1.5">
+            <button onclick="printInvoicePdf('/invoices/download/<?= $invoice['id'] ?>')" class="px-3.5 py-2 bg-obsidian-900 hover:bg-obsidian-800 text-slate-300 hover:text-neutral-50 dark:hover:text-white rounded-xl text-xs font-bold border border-obsidian-800 transition-premium inline-flex items-center gap-1.5">
                 <i data-lucide="printer" class="w-4 h-4"></i>
                 <span>Print Invoice</span>
             </button>
@@ -57,9 +57,13 @@
                     <div>
                         <!-- Clinic Name -->
                         <h3 class="text-xl font-extrabold text-white leading-tight flex items-center gap-2">
-                            <span class="h-7.5 w-7.5 bg-gradient-to-br from-brand-600 to-brand-700 rounded-lg flex items-center justify-center font-extrabold text-white text-xs select-none shadow">
-                                <?= substr(session()->get('clinic_name') ?? 'M', 0, 1) ?>
-                            </span>
+                            <?php if (!empty(session()->get('clinic_logo')) && file_exists(FCPATH . session()->get('clinic_logo'))): ?>
+                                <img class="h-8 w-8 object-cover rounded-lg shadow shrink-0" src="<?= base_url(esc(session()->get('clinic_logo'))) ?>" alt="Logo">
+                            <?php else: ?>
+                                <span class="h-7.5 w-7.5 bg-gradient-to-br from-brand-600 to-brand-700 rounded-lg flex items-center justify-center font-extrabold text-white text-xs select-none shadow shrink-0">
+                                    <?= substr(session()->get('clinic_name') ?? 'M', 0, 1) ?>
+                                </span>
+                            <?php endif; ?>
                             <span><?= esc(session()->get('clinic_name') ?? 'MyVetPaws') ?></span>
                         </h3>
                         <p class="text-xs text-slate-400 mt-2 max-w-xs leading-normal">
@@ -401,4 +405,33 @@
         }
     }
 </style>
+
+<script>
+function printInvoicePdf(url) {
+    // Attempt iframe printing (silent print dialog trigger)
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.src = url;
+    document.body.appendChild(iframe);
+    
+    iframe.onload = function() {
+        try {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            // Remove after 60s
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 60000);
+        } catch (e) {
+            // Fallback to new tab if blocked
+            window.open(url, '_blank');
+        }
+    };
+}
+</script>
 <?= $this->endSection() ?>
