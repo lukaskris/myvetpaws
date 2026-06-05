@@ -11,7 +11,11 @@ class SampleDataSeeder extends Seeder
         $db = \Config\Database::connect();
 
         // Disable foreign key checks for clean seeding
-        $db->simpleQuery('SET FOREIGN_KEY_CHECKS=0');
+        if ($db->DBDriver === 'SQLite3') {
+            $db->simpleQuery('PRAGMA foreign_keys = OFF');
+        } else {
+            $db->simpleQuery('SET FOREIGN_KEY_CHECKS=0');
+        }
 
         // 1. Clear existing data
         $db->table('payments')->truncate();
@@ -61,6 +65,7 @@ class SampleDataSeeder extends Seeder
                 'clinic_id'  => 1,
                 'name'       => 'Konsultasi & Pemeriksaan Umum',
                 'code'       => 'KONSUL',
+                'category'   => 'General',
                 'price'      => 150000.00,
                 'status'     => 1,
                 'created_at' => date('Y-m-d H:i:s'),
@@ -71,6 +76,7 @@ class SampleDataSeeder extends Seeder
                 'clinic_id'  => 1,
                 'name'       => 'Pembersihan Telinga & Grooming',
                 'code'       => 'GROOM',
+                'category'   => 'Grooming',
                 'price'      => 25000.00,
                 'status'     => 1,
                 'created_at' => date('Y-m-d H:i:s'),
@@ -81,6 +87,7 @@ class SampleDataSeeder extends Seeder
                 'clinic_id'  => 1,
                 'name'       => 'Vaksinasi Rabies Tahunan',
                 'code'       => 'VAKSIN',
+                'category'   => 'Vaccination',
                 'price'      => 250000.00,
                 'status'     => 1,
                 'created_at' => date('Y-m-d H:i:s'),
@@ -367,6 +374,10 @@ class SampleDataSeeder extends Seeder
         $db->table('invoices')->insert($invoice2);
 
         // Re-enable foreign key checks
-        $db->simpleQuery('SET FOREIGN_KEY_CHECKS=1');
+        if ($db->DBDriver === 'SQLite3') {
+            $db->simpleQuery('PRAGMA foreign_keys = ON');
+        } else {
+            $db->simpleQuery('SET FOREIGN_KEY_CHECKS=1');
+        }
     }
 }
