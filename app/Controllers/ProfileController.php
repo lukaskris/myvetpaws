@@ -123,11 +123,11 @@ class ProfileController extends BaseController
         if ($hasLogo) {
             $rules['logo'] = [
                 'label'  => 'Clinic Logo',
-                'rules'  => 'uploaded[logo]|is_image[logo]|max_size[logo,2048]|mime_in[logo,image/png,image/jpg,image/jpeg,image/webp,image/gif]',
+                'rules'  => 'uploaded[logo]|is_image[logo]|max_size[logo,5120]|mime_in[logo,image/png,image/jpg,image/jpeg,image/webp,image/gif]',
                 'errors' => [
                     'uploaded' => 'The Clinic Logo failed to upload. Check if the file size is within limits.',
                     'is_image' => 'The uploaded Clinic Logo is not a valid image file.',
-                    'max_size' => 'The Clinic Logo size cannot exceed 2MB.',
+                    'max_size' => 'The Clinic Logo size cannot exceed 5MB.',
                     'mime_in'  => 'The Clinic Logo must be a PNG, JPG, JPEG, WEBP, or GIF image.',
                 ]
             ];
@@ -138,11 +138,11 @@ class ProfileController extends BaseController
         if ($hasBanner) {
             $rules['banner'] = [
                 'label'  => 'Listing Banner Image',
-                'rules'  => 'uploaded[banner]|is_image[banner]|max_size[banner,4096]|mime_in[banner,image/png,image/jpg,image/jpeg,image/webp,image/gif]',
+                'rules'  => 'uploaded[banner]|is_image[banner]|max_size[banner,5120]|mime_in[banner,image/png,image/jpg,image/jpeg,image/webp,image/gif]',
                 'errors' => [
                     'uploaded' => 'The Listing Banner failed to upload. Check if the file size is within limits.',
                     'is_image' => 'The uploaded Listing Banner is not a valid image file.',
-                    'max_size' => 'The Listing Banner size cannot exceed 4MB.',
+                    'max_size' => 'The Listing Banner size cannot exceed 5MB.',
                     'mime_in'  => 'The Listing Banner must be a PNG, JPG, JPEG, WEBP, or GIF image.',
                 ]
             ];
@@ -186,10 +186,19 @@ class ProfileController extends BaseController
                 @unlink(FCPATH . $clinic['logo']);
             }
             
-            $logoName = $logo->getRandomName();
-            $logo->move(FCPATH . 'uploads/logos', $logoName);
-            $clinicData['logo'] = 'uploads/logos/' . $logoName;
-            log_message('error', 'Profile Update Request: Saved logo path: ' . $clinicData['logo']);
+            $randomName = $logo->getRandomName();
+            $webpName = $this->compressAndConvertToWebp($logo->getTempName(), FCPATH . 'uploads/logos', $randomName, 80);
+            
+            if ($webpName !== false) {
+                $clinicData['logo'] = 'uploads/logos/' . $webpName;
+                log_message('error', 'Profile Update Request: Saved compressed webp logo path: ' . $clinicData['logo']);
+            } else {
+                // Fallback to moving the original file if GD conversion failed
+                $logoName = $logo->getRandomName();
+                $logo->move(FCPATH . 'uploads/logos', $logoName);
+                $clinicData['logo'] = 'uploads/logos/' . $logoName;
+                log_message('error', 'Profile Update Request: Saved logo path (fallback): ' . $clinicData['logo']);
+            }
         }
 
         // Handle banner upload
@@ -199,10 +208,19 @@ class ProfileController extends BaseController
                 @unlink(FCPATH . $clinic['banner']);
             }
 
-            $bannerName = $banner->getRandomName();
-            $banner->move(FCPATH . 'uploads/banners', $bannerName);
-            $clinicData['banner'] = 'uploads/banners/' . $bannerName;
-            log_message('error', 'Profile Update Request: Saved banner path: ' . $clinicData['banner']);
+            $randomName = $banner->getRandomName();
+            $webpName = $this->compressAndConvertToWebp($banner->getTempName(), FCPATH . 'uploads/banners', $randomName, 80);
+
+            if ($webpName !== false) {
+                $clinicData['banner'] = 'uploads/banners/' . $webpName;
+                log_message('error', 'Profile Update Request: Saved compressed webp banner path: ' . $clinicData['banner']);
+            } else {
+                // Fallback to moving the original file if GD conversion failed
+                $bannerName = $banner->getRandomName();
+                $banner->move(FCPATH . 'uploads/banners', $bannerName);
+                $clinicData['banner'] = 'uploads/banners/' . $bannerName;
+                log_message('error', 'Profile Update Request: Saved banner path (fallback): ' . $clinicData['banner']);
+            }
         }
 
         // Save
@@ -213,5 +231,58 @@ class ProfileController extends BaseController
         session()->set('clinic_name', $clinicData['name']);
 
         return redirect()->to('/profile')->with('success', 'Clinic profile updated successfully.');
+    }
+
+    /**
+     * Helper to convert and compress uploaded images to WebP format.
+     */
+    private function compressAndConvertToWebp($tempPath, $targetFolder, $filename, $quality = 80)
+    {
+        // Get image info
+        $imageInfo = @getimagesize($tempPath);
+        if (!$imageInfo) {
+            return false;
+        }
+
+        $mime = $imageInfo['mime'];
+        switch ($mime) {
+            case 'image/jpeg':
+            case 'image/jpg':
+                $image = @imagecreatefromjpeg($tempPath);
+                break;
+            case 'image/png':
+                $image = @imagecreatefrompng($tempPath);
+                if ($image) {
+                    imagepalettetotruecolor($image);
+                    imagealphablending($image, true);
+                    imagesavealpha($image, true);
+                }
+                break;
+            case 'image/gif':
+                $image = @imagecreatefromgif($tempPath);
+                if ($image) {
+                    imagepalettetotruecolor($image);
+                }
+                break;
+            case 'image/webp':
+                $image = @imagecreatefromwebp($tempPath);
+                break;
+            default:
+                return false;
+        }
+
+        if (!$image) {
+            return false;
+        }
+
+        // Generate target filename with webp extension
+        $webpFilename = pathinfo($filename, PATHINFO_FILENAME) . '.webp';
+        $destination = rtrim($targetFolder, '/') . '/' . $webpFilename;
+
+        // Save image as WebP format
+        $success = @imagewebp($image, $destination, $quality);
+        @imagedestroy($image);
+
+        return $success ? $webpFilename : false;
     }
 }
