@@ -1,8 +1,21 @@
 <?php
 
-use CodeIgniter\Test\CIUnitTestCase;
-use CodeIgniter\Test\FeatureTestTrait;
-use CodeIgniter\Test\DatabaseTestTrait;
+namespace CodeIgniter\HTTP\Files {
+    function is_uploaded_file(string $filename): bool
+    {
+        return true;
+    }
+
+    function move_uploaded_file(string $filename, string $destination): bool
+    {
+        return copy($filename, $destination);
+    }
+}
+
+namespace {
+    use CodeIgniter\Test\CIUnitTestCase;
+    use CodeIgniter\Test\FeatureTestTrait;
+    use CodeIgniter\Test\DatabaseTestTrait;
 
 /**
  * @internal
@@ -109,4 +122,94 @@ final class ProfileControllerTest extends CIUnitTestCase
         $this->assertArrayHasKey('slug', $errors);
         $this->assertArrayHasKey('latitude', $errors);
     }
+
+    public function testProfileUpdateWithFiles(): void
+    {
+        $sessionData = [
+            'user_id'     => 1,
+            'clinic_id'   => 1,
+            'user_name'   => 'Dr. Hermawan, DVM',
+            'user_role'   => 'owner',
+            'logged_in'   => true,
+            'clinic_name' => 'Klinik Hewan Sehat'
+        ];
+
+        // Create a dummy image file for testing
+        $dummyLogoPath = WRITEPATH . 'test_logo.png';
+        $im = imagecreatetruecolor(10, 10);
+        imagepng($im, $dummyLogoPath);
+        imagedestroy($im);
+
+        $dummyBannerPath = WRITEPATH . 'test_banner.png';
+        $im2 = imagecreatetruecolor(10, 10);
+        imagepng($im2, $dummyBannerPath);
+        imagedestroy($im2);
+
+        // Mock $_FILES
+        $_FILES['logo'] = [
+            'name'     => 'test_logo.png',
+            'type'     => 'image/png',
+            'tmp_name' => $dummyLogoPath,
+            'error'    => UPLOAD_ERR_OK,
+            'size'     => filesize($dummyLogoPath),
+        ];
+
+        $_FILES['banner'] = [
+            'name'     => 'test_banner.png',
+            'type'     => 'image/png',
+            'tmp_name' => $dummyBannerPath,
+            'error'    => UPLOAD_ERR_OK,
+            'size'     => filesize($dummyBannerPath),
+        ];
+
+        // Sync with CodeIgniter Superglobals service
+        service('superglobals')->setFilesArray($_FILES);
+
+        // Perform request
+        $result = $this->withSession($sessionData)
+                       ->post('profile', [
+                           'name'              => 'Updated Clinic Name',
+                           'phone'             => '+62 812-9999-8888',
+                           'email'             => 'updated@clinic.com',
+                           'slug'              => 'updated-clinic-slug',
+                           'address'           => 'Updated Address 123',
+                           'city'              => 'Jakarta',
+                           'province'          => 'DKI Jakarta',
+                           'description'       => 'Best care for your pet.',
+                           'public_visibility' => '1',
+                           'latitude'          => '-6',
+                           'longitude'         => '106.8166'
+                       ]);
+
+        // Clean up dummy files
+        @unlink($dummyLogoPath);
+        @unlink($dummyBannerPath);
+
+        // Assert redirect to profile with success
+        $result->assertStatus(302);
+        
+        $errors = session()->getFlashdata('errors');
+        if ($errors) {
+            print_r($errors);
+        }
+        $this->assertNull($errors);
+        
+        $result->assertRedirectTo(base_url('profile'));
+
+        // Check if database was updated with the files
+        $db = \Config\Database::connect();
+        $updatedClinic = $db->table('clinics')->where('id', 1)->get()->getRowArray();
+        $this->assertNotEmpty($updatedClinic['logo']);
+        $this->assertNotEmpty($updatedClinic['banner']);
+
+        // Check if the uploaded files exist in the public directory
+        $this->assertTrue(file_exists(FCPATH . $updatedClinic['logo']));
+        $this->assertTrue(file_exists(FCPATH . $updatedClinic['banner']));
+
+        // Clean up uploaded files
+        @unlink(FCPATH . $updatedClinic['logo']);
+        @unlink(FCPATH . $updatedClinic['banner']);
+    }
 }
+}
+

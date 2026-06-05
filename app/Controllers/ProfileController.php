@@ -118,12 +118,14 @@ class ProfileController extends BaseController
 
         // Conditionally validate uploaded files to avoid validation blocks when empty
         $logo = $this->request->getFile('logo');
-        $hasNewLogo = $logo && $logo->isValid() && !$logo->hasMoved();
-        if ($hasNewLogo) {
+        $hasLogo = $logo && $logo->getError() !== UPLOAD_ERR_NO_FILE;
+
+        if ($hasLogo) {
             $rules['logo'] = [
                 'label'  => 'Clinic Logo',
-                'rules'  => 'is_image[logo]|max_size[logo,2048]|mime_in[logo,image/png,image/jpg,image/jpeg,image/webp,image/gif]',
+                'rules'  => 'uploaded[logo]|is_image[logo]|max_size[logo,2048]|mime_in[logo,image/png,image/jpg,image/jpeg,image/webp,image/gif]',
                 'errors' => [
+                    'uploaded' => 'The Clinic Logo failed to upload. Check if the file size is within limits.',
                     'is_image' => 'The uploaded Clinic Logo is not a valid image file.',
                     'max_size' => 'The Clinic Logo size cannot exceed 2MB.',
                     'mime_in'  => 'The Clinic Logo must be a PNG, JPG, JPEG, WEBP, or GIF image.',
@@ -132,12 +134,13 @@ class ProfileController extends BaseController
         }
 
         $banner = $this->request->getFile('banner');
-        $hasNewBanner = $banner && $banner->isValid() && !$banner->hasMoved();
-        if ($hasNewBanner) {
+        $hasBanner = $banner && $banner->getError() !== UPLOAD_ERR_NO_FILE;
+        if ($hasBanner) {
             $rules['banner'] = [
                 'label'  => 'Listing Banner Image',
-                'rules'  => 'is_image[banner]|max_size[banner,4096]|mime_in[banner,image/png,image/jpg,image/jpeg,image/webp,image/gif]',
+                'rules'  => 'uploaded[banner]|is_image[banner]|max_size[banner,4096]|mime_in[banner,image/png,image/jpg,image/jpeg,image/webp,image/gif]',
                 'errors' => [
+                    'uploaded' => 'The Listing Banner failed to upload. Check if the file size is within limits.',
                     'is_image' => 'The uploaded Listing Banner is not a valid image file.',
                     'max_size' => 'The Listing Banner size cannot exceed 4MB.',
                     'mime_in'  => 'The Listing Banner must be a PNG, JPG, JPEG, WEBP, or GIF image.',
@@ -145,7 +148,12 @@ class ProfileController extends BaseController
             ];
         }
 
+        // Log upload status for debugging
+        log_message('error', 'Profile Update Request: logo received: ' . ($logo ? 'yes' : 'no') . ', error: ' . ($logo ? $logo->getError() : 'n/a') . ', hasLogo: ' . ($hasLogo ? 'true' : 'false'));
+        log_message('error', 'Profile Update Request: banner received: ' . ($banner ? 'yes' : 'no') . ', error: ' . ($banner ? $banner->getError() : 'n/a') . ', hasBanner: ' . ($hasBanner ? 'true' : 'false'));
+
         if (!$this->validate($rules)) {
+            log_message('error', 'Profile Update Request: Validation failed: ' . json_encode($this->validator->getErrors()));
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -172,7 +180,7 @@ class ProfileController extends BaseController
         }
 
         // Handle logo upload
-        if ($hasNewLogo) {
+        if ($hasLogo && $logo->getError() === UPLOAD_ERR_OK) {
             // Delete old logo file if it exists and is local
             if (!empty($clinic['logo']) && file_exists(FCPATH . $clinic['logo'])) {
                 @unlink(FCPATH . $clinic['logo']);
@@ -181,10 +189,11 @@ class ProfileController extends BaseController
             $logoName = $logo->getRandomName();
             $logo->move(FCPATH . 'uploads/logos', $logoName);
             $clinicData['logo'] = 'uploads/logos/' . $logoName;
+            log_message('error', 'Profile Update Request: Saved logo path: ' . $clinicData['logo']);
         }
 
         // Handle banner upload
-        if ($hasNewBanner) {
+        if ($hasBanner && $banner->getError() === UPLOAD_ERR_OK) {
             // Delete old banner file if it exists and is local
             if (!empty($clinic['banner']) && file_exists(FCPATH . $clinic['banner'])) {
                 @unlink(FCPATH . $clinic['banner']);
@@ -193,9 +202,11 @@ class ProfileController extends BaseController
             $bannerName = $banner->getRandomName();
             $banner->move(FCPATH . 'uploads/banners', $bannerName);
             $clinicData['banner'] = 'uploads/banners/' . $bannerName;
+            log_message('error', 'Profile Update Request: Saved banner path: ' . $clinicData['banner']);
         }
 
         // Save
+        log_message('error', 'Profile Update Request: Updating clinic ID ' . $clinicId . ' with data: ' . json_encode($clinicData));
         $clinicModel->update($clinicId, $clinicData);
 
         // Update session name for instant navigation feedback

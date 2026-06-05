@@ -255,8 +255,8 @@
             bannerPreview: null,
             hasBanner: <?= !empty($clinic['banner']) ? 'true' : 'false' ?>,
             hasLogo: <?= !empty($clinic['logo']) ? 'true' : 'false' ?>,
-            bannerUrl: '<?= !empty($clinic['banner']) ? '/' . esc($clinic['banner']) : '' ?>',
-            logoUrl: '<?= !empty($clinic['logo']) ? '/' . esc($clinic['logo']) : '' ?>',
+            bannerUrl: '<?= !empty($clinic['banner']) ? base_url(esc($clinic['banner'])) : '' ?>',
+            logoUrl: '<?= !empty($clinic['logo']) ? base_url(esc($clinic['logo'])) : '' ?>',
             map: null,
             marker: null,
 

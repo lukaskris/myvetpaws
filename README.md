@@ -21,6 +21,12 @@ MyVetPaws is a modern, high-performance, and visually stunning web application b
 * **Smart Patient Filtering**: Alpine.js dynamically filters registered pets on-the-fly when choosing a customer.
 * **Diagnostic & Treatment Logs**: Record exact diagnosis reports, detailed treatment plans, and schedule retroactive/future check-ups.
 
+### 🗺️ Clinic Branding & Location Pinpoint (New)
+* **Branding Asset Uploads**: Upload clinic branding assets (Logo and Banner) dynamically with real-time browser previewing, file validation, and automatic sizing cleanup.
+* **Interactive Leaflet Map Pinpoint**: Includes an interactive Leaflet.js-powered map for easy location coordination (especially tailored for non-technical users).
+* **Bi-Directional Coordinate Syncing**: Drag-and-drop the map marker to auto-update Latitude/Longitude input fields instantly, or type coordinates manually to shift the marker.
+* **Geocoding Address Search**: Integrated address search bar querying OpenStreetMap Nominatim API to locate addresses instantly and pin coordinates automatically.
+
 ### 💊 Medical Services & Items Inventory Tracking (Obat & Alat Medis)
 * **Services CRUD**: Configure clinic services (Grooming, Consultation, Surgeries, etc.) with automated pricing.
 * **Medicines & Supplies CRUD**: Full inventory management for physical medical items, vaccines, syringes, and disposable supplies. Tracks purchase cost (`buy_price`), selling price (`sell_price`), margin, current stock levels, and safety thresholds (`min_stock`).
