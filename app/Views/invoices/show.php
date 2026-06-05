@@ -21,7 +21,7 @@
                 <span>Back to List</span>
             </a>
             
-            <button onclick="printInvoicePdf('/invoices/download/<?= $invoice['id'] ?>')" class="px-3.5 py-2 bg-obsidian-900 hover:bg-obsidian-800 text-slate-300 hover:text-neutral-50 dark:hover:text-white rounded-xl text-xs font-bold border border-obsidian-800 transition-premium inline-flex items-center gap-1.5">
+            <button onclick="printInvoicePdf('/invoices/download/<?= $invoice['id'] ?>?inline=true')" class="px-3.5 py-2 bg-obsidian-900 hover:bg-obsidian-800 text-slate-300 hover:text-neutral-50 dark:hover:text-white rounded-xl text-xs font-bold border border-obsidian-800 transition-premium inline-flex items-center gap-1.5">
                 <i data-lucide="printer" class="w-4 h-4"></i>
                 <span>Print Invoice</span>
             </button>

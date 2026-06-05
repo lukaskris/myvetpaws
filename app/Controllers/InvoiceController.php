@@ -372,8 +372,10 @@ class InvoiceController extends BaseController
         $cleanNumber = str_replace(['/', '\\', ' '], '-', $invoice['invoice_number']);
         $filename = 'invoice-' . $cleanNumber . '.pdf';
 
+        $disposition = $this->request->getGet('inline') === 'true' ? 'inline' : 'attachment';
+
         return $this->response->setHeader('Content-Type', 'application/pdf')
-                              ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+                              ->setHeader('Content-Disposition', $disposition . '; filename="' . $filename . '"')
                               ->setBody($dompdf->output());
     }
 }
