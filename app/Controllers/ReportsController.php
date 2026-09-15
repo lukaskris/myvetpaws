@@ -69,7 +69,7 @@ class ReportsController extends BaseController
 
         // 4. Top-performing items (revenue & cost margin)
         $topItems = $db->table('medical_record_items')
-                       ->select('items.name, items.code, medical_record_items.sell_price as price, SUM(medical_record_items.quantity) as total_qty, SUM(medical_record_items.sell_price * medical_record_items.quantity) as total_revenue, SUM((medical_record_items.sell_price - medical_record_items.buy_price) * medical_record_items.quantity) as total_profit')
+                       ->select('items.name, items.code, MAX(medical_record_items.sell_price) as price, SUM(medical_record_items.quantity) as total_qty, SUM(medical_record_items.sell_price * medical_record_items.quantity) as total_revenue, SUM((medical_record_items.sell_price - medical_record_items.buy_price) * medical_record_items.quantity) as total_profit')
                        ->join('medical_records', 'medical_records.id = medical_record_items.medical_record_id', 'inner')
                        ->join('items', 'items.id = medical_record_items.item_id', 'inner')
                        ->where('medical_records.clinic_id', $clinicId)
