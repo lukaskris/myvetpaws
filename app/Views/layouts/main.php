@@ -137,6 +137,14 @@
                     <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
                     <span>Dashboard</span>
                 </a>
+                <a href="/calendar" id="nav-calendar" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-premium <?= (current_url() == base_url('calendar')) ? 'bg-brand-600/15 text-brand-300 border-l-2 border-brand-600 shadow-inner' : 'text-slate-400 hover:text-white hover:bg-obsidian-800/40' ?>">
+                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                    <span>Calendar</span>
+                </a>
+                <a href="/visits" id="nav-visits" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-premium <?= (strpos(current_url(), base_url('visits')) !== false) ? 'bg-brand-600/15 text-brand-300 border-l-2 border-brand-600 shadow-inner' : 'text-slate-400 hover:text-white hover:bg-obsidian-800/40' ?>">
+                    <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+                    <span>Visits</span>
+                </a>
                 <a href="/customers" id="nav-customers" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-premium <?= (strpos(current_url(), base_url('customers')) !== false) ? 'bg-brand-600/15 text-brand-300 border-l-2 border-brand-600 shadow-inner' : 'text-slate-400 hover:text-white hover:bg-obsidian-800/40' ?>">
                     <i data-lucide="users" class="w-4 h-4"></i>
                     <span>Customers</span>
@@ -144,10 +152,6 @@
                 <a href="/pets" id="nav-pets" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-premium <?= (strpos(current_url(), base_url('pets')) !== false) ? 'bg-brand-600/15 text-brand-300 border-l-2 border-brand-600 shadow-inner' : 'text-slate-400 hover:text-white hover:bg-obsidian-800/40' ?>">
                     <i data-lucide="paw-print" class="w-4 h-4"></i>
                     <span>Pets & Patients</span>
-                </a>
-                <a href="/visits" id="nav-visits" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-premium <?= (strpos(current_url(), base_url('visits')) !== false) ? 'bg-brand-600/15 text-brand-300 border-l-2 border-brand-600 shadow-inner' : 'text-slate-400 hover:text-white hover:bg-obsidian-800/40' ?>">
-                    <i data-lucide="calendar" class="w-4 h-4"></i>
-                    <span>Visits</span>
                 </a>
                 <a href="/records" id="nav-records" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-premium <?= (strpos(current_url(), base_url('records')) !== false) ? 'bg-brand-600/15 text-brand-300 border-l-2 border-brand-600 shadow-inner' : 'text-slate-400 hover:text-white hover:bg-obsidian-800/40' ?>">
                     <i data-lucide="file-text" class="w-4 h-4"></i>
@@ -203,22 +207,22 @@
     </aside>
 
     <!-- Mobile Bottom Navigation Layout (Glassmorphism 2.0) -->
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-obsidian-900/80 backdrop-blur-xl border-t border-obsidian-850/50 flex justify-around py-3 px-4 shadow-xl">
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-obsidian-900/80 backdrop-blur-xl border-t border-obsidian-850/50 flex justify-around py-3 px-2 shadow-xl">
         <a href="/dashboard" class="flex flex-col items-center gap-1 text-[10px] font-semibold transition <?= (current_url() == base_url('dashboard')) ? 'text-brand-500 font-bold' : 'text-slate-500 hover:text-slate-300' ?>">
             <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
             <span>Dashboard</span>
         </a>
+        <a href="/calendar" class="flex flex-col items-center gap-1 text-[10px] font-semibold transition <?= (current_url() == base_url('calendar')) ? 'text-brand-500 font-bold' : 'text-slate-500 hover:text-slate-300' ?>">
+            <i data-lucide="calendar" class="w-5 h-5"></i>
+            <span>Calendar</span>
+        </a>
+        <a href="/visits" class="flex flex-col items-center gap-1 text-[10px] font-semibold transition <?= (strpos(current_url(), base_url('visits')) !== false) ? 'text-brand-500 font-bold' : 'text-slate-500 hover:text-slate-300' ?>">
+            <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+            <span>Visits</span>
+        </a>
         <a href="/customers" class="flex flex-col items-center gap-1 text-[10px] font-semibold transition <?= (strpos(current_url(), base_url('customers')) !== false) ? 'text-brand-500 font-bold' : 'text-slate-500 hover:text-slate-300' ?>">
             <i data-lucide="users" class="w-5 h-5"></i>
             <span>Customers</span>
-        </a>
-        <a href="/pets" class="flex flex-col items-center gap-1 text-[10px] font-semibold transition <?= (strpos(current_url(), base_url('pets')) !== false) ? 'text-brand-500 font-bold' : 'text-slate-500 hover:text-slate-300' ?>">
-            <i data-lucide="paw-print" class="w-5 h-5"></i>
-            <span>Pets</span>
-        </a>
-        <a href="/visits" class="flex flex-col items-center gap-1 text-[10px] font-semibold transition <?= (strpos(current_url(), base_url('visits')) !== false) ? 'text-brand-500 font-bold' : 'text-slate-500 hover:text-slate-300' ?>">
-            <i data-lucide="calendar" class="w-5 h-5"></i>
-            <span>Visits</span>
         </a>
         <a href="/invoices" class="flex flex-col items-center gap-1 text-[10px] font-semibold transition <?= (strpos(current_url(), base_url('invoices')) !== false) ? 'text-brand-500 font-bold' : 'text-slate-500 hover:text-slate-300' ?>">
             <i data-lucide="receipt" class="w-5 h-5"></i>
