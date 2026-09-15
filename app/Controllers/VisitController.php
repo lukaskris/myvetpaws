@@ -29,9 +29,16 @@ class VisitController extends BaseController
                                        ->orderBy('visits.checkin_time', 'DESC')
                                        ->findAll();
 
-        // Fetch all visits to populate the Calendar View
+        return view('visits/index', [
+            'activeVisits'  => $activeVisits,
+            'historyVisits' => $historyVisits,
+        ]);
+    }
+
+    public function calendar()
+    {
         $calendarModel = new VisitsModel();
-        $calendarVisits = $calendarModel->select('visits.id, visits.checkin_time, visits.status, visits.complaints, pets.name as pet_name, pets.species as pet_species, customers.name as customer_name')
+        $calendarVisits = $calendarModel->select('visits.id, visits.checkin_time, visits.status, visits.appointment_type, visits.complaints, pets.name as pet_name, pets.species as pet_species, customers.name as customer_name')
                                          ->join('pets', 'pets.id = visits.pet_id', 'inner')
                                          ->join('customers', 'customers.id = visits.customer_id', 'inner')
                                          ->orderBy('visits.checkin_time', 'ASC')
@@ -40,20 +47,19 @@ class VisitController extends BaseController
         $calendarEvents = [];
         foreach ($calendarVisits as $v) {
             $calendarEvents[] = [
-                'id'            => (int)$v['id'],
-                'date'          => date('Y-m-d', strtotime($v['checkin_time'])),
-                'time'          => date('H:i', strtotime($v['checkin_time'])),
-                'status'        => (int)$v['status'],
-                'pet_name'      => $v['pet_name'],
-                'pet_species'   => $v['pet_species'],
-                'customer_name' => $v['customer_name'],
-                'complaints'    => $v['complaints'] ?: '',
+                'id'               => (int)$v['id'],
+                'date'             => date('Y-m-d', strtotime($v['checkin_time'])),
+                'time'             => date('H:i', strtotime($v['checkin_time'])),
+                'status'           => (int)$v['status'],
+                'appointment_type' => $v['appointment_type'],
+                'pet_name'         => $v['pet_name'],
+                'pet_species'      => $v['pet_species'],
+                'customer_name'    => $v['customer_name'],
+                'complaints'       => $v['complaints'] ?: '',
             ];
         }
 
-        return view('visits/index', [
-            'activeVisits'   => $activeVisits,
-            'historyVisits'  => $historyVisits,
+        return view('visits/calendar', [
             'calendarEvents' => $calendarEvents,
         ]);
     }
@@ -88,13 +94,12 @@ class VisitController extends BaseController
     public function store()
     {
         $rules = [
-            'customer_id'            => 'required|numeric',
-            'checkin_time'           => 'required|valid_date[Y-m-d\TH:i]',
-            'visits'                 => 'required',
-            'visits.*.pet_id'        => 'required|numeric',
-            'visits.*.weight'        => 'permit_empty|decimal',
-            'visits.*.temperature'   => 'permit_empty|decimal',
-            'visits.*.complaints'    => 'permit_empty|max_length[2000]',
+            'customer_id'               => 'required|numeric',
+            'checkin_time'              => 'required|valid_date[Y-m-d\TH:i]',
+            'visits'                    => 'required',
+            'visits.*.pet_id'           => 'required|numeric',
+            'visits.*.appointment_type' => 'required|in_list[vet_checkup,home_visit,grooming]',
+            'visits.*.complaints'       => 'permit_empty|max_length[2000]',
         ];
 
         // Format custom error messages for the array structure to be user-friendly
@@ -107,11 +112,9 @@ class VisitController extends BaseController
                 'required' => 'Please select a valid pet for each check-in entry.',
                 'numeric'  => 'Please select a valid pet for each check-in entry.',
             ],
-            'visits.*.weight' => [
-                'decimal' => 'Each pet weight must be a decimal number.',
-            ],
-            'visits.*.temperature' => [
-                'decimal' => 'Each pet temperature must be a decimal number.',
+            'visits.*.appointment_type' => [
+                'required' => 'Please select an appointment type for each check-in entry.',
+                'in_list'  => 'Please select a valid appointment type (Vet Checkup, Home Visit, or Grooming).',
             ],
             'visits.*.complaints' => [
                 'max_length' => 'Each pet complaints note must not exceed 2000 characters.',
@@ -149,14 +152,13 @@ class VisitController extends BaseController
 
         foreach ($visitsData as $visit) {
             $visitData = [
-                'pet_id'       => $visit['pet_id'],
-                'customer_id'  => $customerId,
-                'user_id'      => session()->get('user_id'),
-                'checkin_time' => $checkinTime,
-                'status'       => 1, // Queued
-                'complaints'   => $visit['complaints'] ?: null,
-                'weight'       => $visit['weight'] !== '' ? $visit['weight'] : null,
-                'temperature'  => $visit['temperature'] !== '' ? $visit['temperature'] : null,
+                'pet_id'           => $visit['pet_id'],
+                'customer_id'      => $customerId,
+                'user_id'          => session()->get('user_id'),
+                'checkin_time'     => $checkinTime,
+                'appointment_type' => $visit['appointment_type'],
+                'status'           => 1, // Queued
+                'complaints'       => $visit['complaints'] ?: null,
             ];
             $visitsModel->insert($visitData);
         }
@@ -254,6 +256,8 @@ class VisitController extends BaseController
         $rules = [
             'diagnosis'      => 'required|min_length[3]|max_length[5000]',
             'treatment_plan' => 'required|min_length[3]|max_length[5000]',
+            'weight'         => 'permit_empty|decimal',
+            'temperature'    => 'permit_empty|decimal',
             'next_visit_at'  => 'permit_empty|valid_date[Y-m-d]',
             'services'       => 'permit_empty', // Array of service IDs
             'items'          => 'permit_empty', // Array of item IDs
@@ -359,8 +363,14 @@ class VisitController extends BaseController
         $invoiceNumber = 'INV-' . date('Ymd') . '-' . str_pad($invoiceId, 5, '0', STR_PAD_LEFT);
         $invoicesModel->update($invoiceId, ['invoice_number' => $invoiceNumber]);
 
-        // 4. Mark Visit as Completed (3)
-        $visitsModel->update($id, ['status' => 3]);
+        // 4. Save examination vitals and mark Visit as Completed (3)
+        $weight = $this->request->getPost('weight');
+        $temperature = $this->request->getPost('temperature');
+        $visitsModel->update($id, [
+            'status'      => 3,
+            'weight'      => $weight !== '' && $weight !== null ? $weight : null,
+            'temperature' => $temperature !== '' && $temperature !== null ? $temperature : null,
+        ]);
 
         $db->transComplete();
 
