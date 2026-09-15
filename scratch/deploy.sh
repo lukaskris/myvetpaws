@@ -10,14 +10,7 @@ EMAIL="edwin.kurniawan@balog.co.id"
 echo "=== 1. Compiling Tailwind CSS assets locally ==="
 npm run build
 
-echo "=== 2. Cleaning old files on remote server ==="
-sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@$SERVER_IP "
-  if [ -d $REMOTE_PATH ]; then
-    rm -rf $REMOTE_PATH
-  fi
-"
-
-echo "=== 3. Creating remote directory structure ==="
+echo "=== 2. Creating remote directory structure ==="
 sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@$SERVER_IP "
   mkdir -p $REMOTE_PATH/writable/cache \
            $REMOTE_PATH/writable/sessions \
@@ -26,14 +19,14 @@ sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@$SERVER_IP "
            $REMOTE_PATH/writable/debugbar
 "
 
-echo "=== 4. Re-creating clean database and granting permissions ==="
+echo "=== 3. Ensuring database exists and granting permissions ==="
 sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@$SERVER_IP "
-  mysql -e 'DROP DATABASE IF EXISTS myvetpaws; CREATE DATABASE myvetpaws;'
+  mysql -e 'CREATE DATABASE IF NOT EXISTS myvetpaws;'
   mysql -e \"GRANT ALL PRIVILEGES ON myvetpaws.* TO 'remote_user'@'localhost';\"
   mysql -e 'FLUSH PRIVILEGES;'
 "
 
-echo "=== 5. Syncing files via Rsync ==="
+echo "=== 4. Syncing files via Rsync ==="
 rsync -avz --delete \
   --exclude=".git" \
   --exclude="node_modules" \
@@ -50,7 +43,7 @@ rsync -avz --delete \
   -e "sshpass -p $SSH_PASS ssh -o StrictHostKeyChecking=no" \
   ./ root@$SERVER_IP:$REMOTE_PATH/
 
-echo "=== 6. Uploading production .env file ==="
+echo "=== 5. Uploading production .env file ==="
 cat << 'EOF' > .env.production
 #--------------------------------------------------------------------
 # MyVetPaws Production Configuration
@@ -94,23 +87,30 @@ EOF
 sshpass -p "$SSH_PASS" scp -o StrictHostKeyChecking=no .env.production root@$SERVER_IP:$REMOTE_PATH/.env
 rm -f .env.production
 
-echo "=== 7. Running Composer Install on remote server ==="
+echo "=== 6. Running Composer Install on remote server ==="
 sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@$SERVER_IP "cd $REMOTE_PATH && composer install --no-dev --optimize-autoloader"
 
-echo "=== 8. Setting up remote directory ownership and permissions ==="
+echo "=== 7. Setting up remote directory ownership and permissions ==="
 sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@$SERVER_IP "
   chown -R www-data:www-data $REMOTE_PATH
   chmod -R 775 $REMOTE_PATH/writable
 "
 
-echo "=== 9. Running database migrations & seeders ==="
+echo "=== 8. Running database migrations & seeders ==="
 sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@$SERVER_IP "
   cd $REMOTE_PATH
   php spark migrate
-  php spark db:seed SampleDataSeeder
+  USER_COUNT=\$(mysql -N -e 'SELECT COUNT(*) FROM myvetpaws.users;' 2>/dev/null | tr -d '[:space:]')
+  if [ -z \"\$USER_COUNT\" ]; then USER_COUNT=0; fi
+  if [ \"\$USER_COUNT\" = \"0\" ]; then
+    echo 'Database is empty, seeding sample data...'
+    php spark db:seed SampleDataSeeder
+  else
+    echo 'Existing data detected, skipping sample seeder.'
+  fi
 "
 
-echo "=== 10. Setting up Nginx virtual host configuration ==="
+echo "=== 9. Setting up Nginx virtual host configuration ==="
 sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@$SERVER_IP "cat << 'NGINX_EOF' > /etc/nginx/sites-available/$DOMAIN
 server {
     listen 80;
@@ -139,7 +139,7 @@ server {
 NGINX_EOF
 "
 
-echo "=== 11. Enabling Nginx site, disabling old config, and reloading Nginx ==="
+echo "=== 10. Enabling Nginx site, disabling old config, and reloading Nginx ==="
 sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@$SERVER_IP "
   rm -f /etc/nginx/sites-enabled/myvetpaws
   ln -sf /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/$DOMAIN
@@ -147,7 +147,7 @@ sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@$SERVER_IP "
   systemctl reload nginx
 "
 
-echo "=== 12. Running Certbot for Let's Encrypt SSL ==="
+echo "=== 11. Running Certbot for Let's Encrypt SSL ==="
 if sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@$SERVER_IP "host $DOMAIN" >/dev/null 2>&1; then
   echo "DNS resolved! Starting SSL generation..."
   sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no root@$SERVER_IP "certbot --nginx -d $DOMAIN -d www.$DOMAIN --non-interactive --agree-tos -m $EMAIL --redirect"
