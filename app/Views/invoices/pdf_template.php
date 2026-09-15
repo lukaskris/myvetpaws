@@ -409,8 +409,14 @@
                 <table class="totals-table">
                     <tr>
                         <td class="totals-label">Subtotal:</td>
-                        <td class="totals-val">Rp<?= number_format($totalInvoiceAmount, 0, ',', '.') ?></td>
+                        <td class="totals-val">Rp<?= number_format($totalInvoiceAmount + $totalDiscount, 0, ',', '.') ?></td>
                     </tr>
+                    <?php if ($totalDiscount > 0): ?>
+                        <tr>
+                            <td class="totals-label" style="color: #b45309;">Discount:</td>
+                            <td class="totals-val" style="color: #b45309; font-weight: 700;">- Rp<?= number_format($totalDiscount, 0, ',', '.') ?></td>
+                        </tr>
+                    <?php endif; ?>
                     <?php if ($totalPaid > 0): ?>
                         <tr>
                             <td class="totals-label" style="color: #065f46;">Amount Paid:</td>

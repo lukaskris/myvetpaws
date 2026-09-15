@@ -5,7 +5,7 @@
 <?= $this->section('header') ?>Invoice Details<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
-<div class="space-y-6" x-data="{ showPaymentModal: false }">
+<div class="space-y-6" x-data="{ showPaymentModal: false, showDiscountModal: false }">
     <!-- Action buttons -->
     <div class="flex items-center justify-between flex-wrap gap-4">
         <div class="flex items-center space-x-2.5 text-xs text-slate-400">
@@ -33,6 +33,10 @@
             </a>
 
             <?php if ($remainingBalance > 0): ?>
+                <button @click="showDiscountModal = true" class="px-3.5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-amber-600/10 hover:shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-premium inline-flex items-center gap-1.5">
+                    <i data-lucide="percent" class="w-4 h-4"></i>
+                    <span><?= ($invoice['discount'] ?? 0) > 0 ? 'Edit Discount' : 'Apply Discount' ?></span>
+                </button>
                 <button @click="showPaymentModal = true" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/10 hover:shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-premium inline-flex items-center gap-1.5">
                     <i data-lucide="plus" class="w-4 h-4"></i>
                     <span>Record Payment</span>
@@ -238,6 +242,18 @@
                             </tbody>
                             <tfoot class="bg-obsidian-950/80 border-t border-obsidian-800 text-xs font-bold">
                                 <tr>
+                                    <td colspan="3" class="px-4 py-3 text-right text-slate-450 uppercase tracking-wider">Subtotal:</td>
+                                    <td class="px-4 py-3 text-right text-white">
+                                        Rp<?= number_format($totalInvoiceAmount + $totalDiscount, 0, ',', '.') ?>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="px-4 py-3 text-right text-slate-450 uppercase tracking-wider">Discount:</td>
+                                    <td class="px-4 py-3 text-right <?= $totalDiscount > 0 ? 'text-amber-400' : 'text-slate-500' ?>">
+                                        - Rp<?= number_format($totalDiscount, 0, ',', '.') ?>
+                                    </td>
+                                </tr>
+                                <tr>
                                     <td colspan="3" class="px-4 py-3 text-right text-slate-450 uppercase tracking-wider">Total Invoice Amount:</td>
                                     <td class="px-4 py-3 text-right text-white">
                                         Rp<?= number_format($totalInvoiceAmount, 0, ',', '.') ?>
@@ -368,6 +384,60 @@
                     <button type="submit"
                             class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 transition-premium">
                         Submit Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Alpine.js Apply Discount Modal -->
+    <div x-show="showDiscountModal"
+         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-obsidian-950/80 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 scale-95"
+         x-transition:enter-end="opacity-100 scale-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 scale-100"
+         x-transition:leave-end="opacity-0 scale-95"
+         x-cloak>
+        <div class="relative bg-obsidian-900 border border-obsidian-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-6" @click.away="showDiscountModal = false">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="percent" class="w-5 h-5 text-amber-500"></i>
+                    <span>Apply Discount</span>
+                </h3>
+                <button @click="showDiscountModal = false" class="text-slate-500 hover:text-neutral-50 dark:hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Modal Form -->
+            <form action="/invoices/discount/<?= $invoice['id'] ?>" method="POST" class="space-y-4">
+                <?= csrf_field() ?>
+
+                <div class="bg-obsidian-950/80 p-4 border border-obsidian-800 rounded-2xl space-y-1 shadow-inner">
+                    <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Invoice Subtotal</div>
+                    <div class="text-lg font-extrabold text-white">Rp<?= number_format($totalInvoiceAmount + $totalDiscount, 0, ',', '.') ?></div>
+                </div>
+
+                <!-- Discount Amount Field -->
+                <div>
+                    <label for="discount" class="text-xs font-bold text-slate-400 block mb-1.5">Discount Amount (Rp)</label>
+                    <input type="number" name="discount" id="discount" value="<?= (float)($invoice['discount'] ?? 0) ?>" min="1" step="0.01" required
+                           class="w-full bg-obsidian-950 border border-obsidian-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 transition">
+                    <p class="text-[10px] text-slate-500 mt-1.5">Discount applies to invoice <?= esc($invoice['invoice_number']) ?> and cannot exceed its unpaid amount.</p>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button type="button" @click="showDiscountModal = false"
+                            class="px-4 py-2 bg-obsidian-800 hover:bg-obsidian-750 text-slate-300 hover:text-white rounded-xl text-xs font-bold border border-obsidian-700 transition-premium">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20 transition">
+                        Apply Discount
                     </button>
                 </div>
             </form>

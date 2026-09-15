@@ -21,6 +21,7 @@ $routes->get('logout', 'AuthController::logout');
 // Secure Workspace Routes (Filtered by AuthFilter)
 $routes->group('', ['filter' => 'auth'], function(RouteCollection $routes) {
     $routes->get('dashboard', 'DashboardController::index');
+    $routes->get('calendar', 'VisitController::calendar');
 
     // Clinic Settings (Owner Only)
     $routes->get('profile', 'ProfileController::index', ['filter' => 'role:owner']);
@@ -98,6 +99,7 @@ $routes->group('', ['filter' => 'auth'], function(RouteCollection $routes) {
         $routes->get('show/(:num)', 'InvoiceController::show/$1');
         $routes->get('download/(:num)', 'InvoiceController::download/$1');
         $routes->post('pay/(:num)', 'InvoiceController::pay/$1');
+        $routes->post('discount/(:num)', 'InvoiceController::applyDiscount/$1');
     });
 
     // Analytics & Reporting

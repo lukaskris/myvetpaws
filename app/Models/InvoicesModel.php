@@ -16,6 +16,7 @@ class InvoicesModel extends TenantModel
         'medical_record_id',
         'invoice_number',
         'total_amount',
+        'discount',
         'status',
     ];
 
