@@ -29,7 +29,7 @@
              
              resetPets() {
                  this.selectedPets = [
-                     { id: Date.now(), petId: '', weight: '', temperature: '', complaints: '' }
+                     { id: Date.now(), petId: '', appointmentType: 'vet_checkup', complaints: '' }
                  ];
                  this.$nextTick(() => { lucide.createIcons(); });
              },
@@ -49,8 +49,7 @@
                      this.selectedPets.push({
                          id: Date.now() + Math.random(),
                          petId: '',
-                         weight: '',
-                         temperature: '',
+                         appointmentType: 'vet_checkup',
                          complaints: ''
                      });
                      this.$nextTick(() => { lucide.createIcons(); });
@@ -67,7 +66,7 @@
             <i data-lucide="clipboard-list" class="w-5 h-5 text-brand-500"></i>
             <span>Register Patient Check-in</span>
         </h2>
-        <p class="text-xs text-slate-400 mb-6">Select a customer, choose their registered pet, and record complaints and initial vitals.</p>
+        <p class="text-xs text-slate-400 mb-6">Select a customer, choose their registered pet, set the appointment type, and record symptom notes. Vitals (weight &amp; temperature) are captured during examination.</p>
 
         <!-- Display validation errors -->
         <?php if (session()->getFlashdata('errors')): ?>
@@ -146,36 +145,19 @@
                                 </div>
                             </div>
 
-                            <!-- Vitals Grid -->
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                <!-- Weight -->
-                                <div>
-                                    <label :for="'weight_' + index" class="block text-xs font-bold text-slate-450 uppercase tracking-wider mb-2">Weight (kg)</label>
-                                    <div class="relative">
-                                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                                            <i data-lucide="scale" class="w-4 h-4"></i>
-                                        </div>
-                                        <input type="number" :name="'visits[' + index + '][weight]'" :id="'weight_' + index" step="0.01" min="0" placeholder="0.00" x-model="item.weight"
-                                               class="w-full bg-obsidian-950/60 border border-obsidian-800/80 focus:border-brand-600 rounded-xl pl-10 pr-12 py-3 text-sm text-white focus:outline-none transition duration-200">
-                                        <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-500 text-xs font-bold">
-                                            kg
-                                        </div>
+                            <!-- Appointment Type -->
+                            <div>
+                                <label :for="'appointment_type_' + index" class="block text-xs font-bold text-slate-450 uppercase tracking-wider mb-2">Appointment Type</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                        <i data-lucide="stethoscope" class="w-4 h-4"></i>
                                     </div>
-                                </div>
-
-                                <!-- Temperature -->
-                                <div>
-                                    <label :for="'temperature_' + index" class="block text-xs font-bold text-slate-450 uppercase tracking-wider mb-2">Temperature (°C)</label>
-                                    <div class="relative">
-                                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                                            <i data-lucide="thermometer" class="w-4 h-4"></i>
-                                        </div>
-                                        <input type="number" :name="'visits[' + index + '][temperature]'" :id="'temperature_' + index" step="0.1" min="0" placeholder="0.0" x-model="item.temperature"
-                                               class="w-full bg-obsidian-950/60 border border-obsidian-800/80 focus:border-brand-600 rounded-xl pl-10 pr-12 py-3 text-sm text-white focus:outline-none transition duration-200">
-                                        <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-500 text-xs font-bold">
-                                            °C
-                                        </div>
-                                    </div>
+                                    <select :name="'visits[' + index + '][appointment_type]'" :id="'appointment_type_' + index" x-model="item.appointmentType" required
+                                            class="w-full bg-obsidian-950/60 border border-obsidian-800/80 focus:border-brand-600 rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:outline-none transition duration-200">
+                                        <option value="vet_checkup">Vet Checkup</option>
+                                        <option value="home_visit">Home Visit</option>
+                                        <option value="grooming">Grooming</option>
+                                    </select>
                                 </div>
                             </div>
 

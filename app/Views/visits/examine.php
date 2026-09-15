@@ -72,7 +72,7 @@ function getDetailedAge($birthDate) {
 
             <!-- Vitals Summary -->
             <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-lg space-y-4">
-                <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-wider">Checked-in Vitals</h4>
+                <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-wider">Recorded Vitals</h4>
                 
                 <div class="grid grid-cols-2 gap-4">
                     <div class="bg-neutral-950 border border-neutral-850 p-4 rounded-2xl text-center">
@@ -115,6 +115,38 @@ function getDetailedAge($birthDate) {
 
                 <form action="/visits/examine/<?= $visit['id'] ?>" method="POST" class="space-y-6">
                     <?= csrf_field() ?>
+
+                    <!-- Vitals -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label for="weight" class="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">Weight (kg)</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-500">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3a9 9 0 109 9 9 9 0 00-9-9z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 7v5l3 3" />
+                                    </svg>
+                                </div>
+                                <input type="number" name="weight" id="weight" step="0.01" min="0" placeholder="0.00" value="<?= old('weight', $visit['weight']) ?>"
+                                       class="w-full bg-neutral-950 border border-neutral-850 focus:border-brand-500 rounded-xl pl-10 pr-12 py-3 text-sm text-white focus:outline-none transition duration-150">
+                                <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-neutral-500 text-xs font-bold">kg</div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="temperature" class="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">Temperature (°C)</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-500">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9a3 3 0 003-3V5a3 3 0 00-6 0v1a3 3 0 003 3z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v9m0 0a3 3 0 103 3m-3-3a3 3 0 013 3" />
+                                    </svg>
+                                </div>
+                                <input type="number" name="temperature" id="temperature" step="0.1" min="0" placeholder="0.0" value="<?= old('temperature', $visit['temperature']) ?>"
+                                       class="w-full bg-neutral-950 border border-neutral-850 focus:border-brand-500 rounded-xl pl-10 pr-12 py-3 text-sm text-white focus:outline-none transition duration-150">
+                                <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-neutral-500 text-xs font-bold">°C</div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Diagnosis -->
                     <div>

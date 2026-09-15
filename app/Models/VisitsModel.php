@@ -16,6 +16,7 @@ class VisitsModel extends TenantModel
         'customer_id',
         'user_id',
         'checkin_time',
+        'appointment_type',
         'status',
         'complaints',
         'weight',
