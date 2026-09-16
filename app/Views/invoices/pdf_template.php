@@ -23,7 +23,7 @@
     .header-table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 26px;
+        margin-bottom: 18px;
     }
     .clinic-logo {
         width: 54px;
@@ -79,7 +79,7 @@
     .parties-table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 26px;
+        margin-bottom: 18px;
     }
     .party-label {
         font-size: 9px;
@@ -106,7 +106,7 @@
         text-transform: uppercase;
         letter-spacing: 1.5px;
         color: #6b7280;
-        margin: 18px 0 6px 0;
+        margin: 12px 0 5px 0;
     }
     .items-table {
         width: 100%;
@@ -120,11 +120,11 @@
         letter-spacing: 0.75px;
         color: #6b7280;
         font-weight: bold;
-        padding: 5px 6px;
+        padding: 4px 6px;
         border-bottom: 1.25px solid #111827;
     }
     .items-table tbody td {
-        padding: 5px 6px;
+        padding: 4px 6px;
         border-bottom: 0.75px solid #e5e7eb;
         vertical-align: top;
     }
@@ -161,7 +161,7 @@
         border-collapse: collapse;
         font-size: 11px;
         min-width: 300px;
-        margin-top: 20px;
+        margin-top: 14px;
     }
     .summary-table td {
         padding: 4px 0 4px 18px;
@@ -192,7 +192,7 @@
         font-style: italic;
         font-size: 10px;
         color: #6b7280;
-        margin-top: 40px;
+        margin-top: 26px;
     }
 </style>
 </head>
