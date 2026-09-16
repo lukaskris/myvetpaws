@@ -5,7 +5,7 @@
 <?= $this->section('header') ?>Invoice Details<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
-<div class="space-y-6" x-data="{ showPaymentModal: false, showDiscountModal: false }">
+<div class="space-y-6" x-data="{ showPaymentModal: false, showDiscountModal: false, discountMode: '<?= (($invoice['service_discount'] ?? 0) > 0 || ($invoice['item_discount'] ?? 0) > 0) ? 'category' : 'invoice' ?>' }">
     <!-- Action buttons -->
     <div class="flex items-center justify-between flex-wrap gap-4">
         <div class="flex items-center space-x-2.5 text-xs text-slate-400">
@@ -35,7 +35,7 @@
             <?php if ($remainingBalance > 0): ?>
                 <button @click="showDiscountModal = true" class="px-3.5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-amber-600/10 hover:shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-premium inline-flex items-center gap-1.5">
                     <i data-lucide="percent" class="w-4 h-4"></i>
-                    <span><?= ($invoice['discount'] ?? 0) > 0 ? 'Edit Discount' : 'Apply Discount' ?></span>
+                    <span><?= (($invoice['discount'] ?? 0) > 0 || ($invoice['service_discount'] ?? 0) > 0 || ($invoice['item_discount'] ?? 0) > 0) ? 'Edit Discount' : 'Apply Discount' ?></span>
                 </button>
                 <button @click="showPaymentModal = true" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/10 hover:shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-premium inline-flex items-center gap-1.5">
                     <i data-lucide="plus" class="w-4 h-4"></i>
@@ -247,12 +247,31 @@
                                         Rp<?= number_format($totalInvoiceAmount + $totalDiscount, 0, ',', '.') ?>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td colspan="3" class="px-4 py-3 text-right text-slate-450 uppercase tracking-wider">Discount:</td>
-                                    <td class="px-4 py-3 text-right <?= $totalDiscount > 0 ? 'text-amber-400' : 'text-slate-500' ?>">
-                                        - Rp<?= number_format($totalDiscount, 0, ',', '.') ?>
-                                    </td>
-                                </tr>
+                                <?php if ($totalDiscount > 0): ?>
+                                    <?php if ($totalInvoiceDiscount > 0): ?>
+                                        <tr>
+                                            <td colspan="3" class="px-4 py-3 text-right text-slate-450 uppercase tracking-wider">Discount:</td>
+                                            <td class="px-4 py-3 text-right text-amber-400">- Rp<?= number_format($totalInvoiceDiscount, 0, ',', '.') ?></td>
+                                        </tr>
+                                    <?php endif; ?>
+                                    <?php if ($totalServiceDiscount > 0): ?>
+                                        <tr>
+                                            <td colspan="3" class="px-4 py-3 text-right text-slate-450 uppercase tracking-wider">Discount (Services):</td>
+                                            <td class="px-4 py-3 text-right text-amber-400">- Rp<?= number_format($totalServiceDiscount, 0, ',', '.') ?></td>
+                                        </tr>
+                                    <?php endif; ?>
+                                    <?php if ($totalItemDiscount > 0): ?>
+                                        <tr>
+                                            <td colspan="3" class="px-4 py-3 text-right text-slate-450 uppercase tracking-wider">Discount (Medicines &amp; Supplies):</td>
+                                            <td class="px-4 py-3 text-right text-amber-400">- Rp<?= number_format($totalItemDiscount, 0, ',', '.') ?></td>
+                                        </tr>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="3" class="px-4 py-3 text-right text-slate-450 uppercase tracking-wider">Discount:</td>
+                                        <td class="px-4 py-3 text-right text-slate-500">- Rp0</td>
+                                    </tr>
+                                <?php endif; ?>
                                 <tr>
                                     <td colspan="3" class="px-4 py-3 text-right text-slate-450 uppercase tracking-wider">Total Invoice Amount:</td>
                                     <td class="px-4 py-3 text-right text-white">
@@ -415,18 +434,78 @@
             <!-- Modal Form -->
             <form action="/invoices/discount/<?= $invoice['id'] ?>" method="POST" class="space-y-4">
                 <?= csrf_field() ?>
+                <input type="hidden" name="mode" :value="discountMode">
 
                 <div class="bg-obsidian-950/80 p-4 border border-obsidian-800 rounded-2xl space-y-1 shadow-inner">
                     <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Invoice Subtotal</div>
                     <div class="text-lg font-extrabold text-white">Rp<?= number_format($totalInvoiceAmount + $totalDiscount, 0, ',', '.') ?></div>
                 </div>
 
-                <!-- Discount Amount Field -->
-                <div>
-                    <label for="discount" class="text-xs font-bold text-slate-400 block mb-1.5">Discount Amount (Rp)</label>
-                    <input type="number" name="discount" id="discount" value="<?= (float)($invoice['discount'] ?? 0) ?>" min="1" step="0.01" required
-                           class="w-full bg-obsidian-950 border border-obsidian-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 transition">
-                    <p class="text-[10px] text-slate-500 mt-1.5">Discount applies to invoice <?= esc($invoice['invoice_number']) ?> and cannot exceed its unpaid amount.</p>
+                <!-- Mode Tabs -->
+                <div class="grid grid-cols-2 gap-2 p-1 bg-obsidian-950 border border-obsidian-800 rounded-xl">
+                    <button type="button" @click="discountMode = 'invoice'"
+                            :class="discountMode === 'invoice' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'"
+                            class="px-3 py-2 rounded-lg text-xs font-bold transition">Per Invoice</button>
+                    <button type="button" @click="discountMode = 'category'"
+                            :class="discountMode === 'category' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'"
+                            class="px-3 py-2 rounded-lg text-xs font-bold transition">Per Category</button>
+                </div>
+
+                <!-- Invoice-level discount -->
+                <div x-show="discountMode === 'invoice'" class="space-y-4">
+                    <div class="flex gap-2">
+                        <label class="flex-1 flex items-center gap-2 px-3 py-2 bg-obsidian-950 border border-obsidian-800 rounded-xl cursor-pointer text-xs font-bold text-slate-300 has-checked:border-amber-500 has-checked:text-amber-400 transition">
+                            <input type="radio" name="discount_type" value="rupiah" <?= ($invoice['discount_type'] ?? 'rupiah') !== 'percent' ? 'checked' : '' ?> class="accent-amber-600">
+                            Rp (fixed)
+                        </label>
+                        <label class="flex-1 flex items-center gap-2 px-3 py-2 bg-obsidian-950 border border-obsidian-800 rounded-xl cursor-pointer text-xs font-bold text-slate-300 has-checked:border-amber-500 has-checked:text-amber-400 transition">
+                            <input type="radio" name="discount_type" value="percent" <?= ($invoice['discount_type'] ?? '') === 'percent' ? 'checked' : '' ?> class="accent-amber-600">
+                            % (percent)
+                        </label>
+                    </div>
+                    <div>
+                        <label for="discount" class="text-xs font-bold text-slate-400 block mb-1.5">Discount Amount</label>
+                        <input type="number" name="discount" id="discount" value="<?= (float)($invoice['discount'] ?? 0) ?>" min="0" step="0.01"
+                               class="w-full bg-obsidian-950 border border-obsidian-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 transition">
+                        <p class="text-[10px] text-slate-500 mt-1.5">Applies to invoice <?= esc($invoice['invoice_number']) ?>. Cannot exceed the unpaid amount of Rp<?= number_format($editUnpaidCap, 0, ',', '.') ?>.</p>
+                    </div>
+                </div>
+
+                <!-- Per-category discounts -->
+                <div x-show="discountMode === 'category'" x-cloak class="space-y-4">
+                    <div class="bg-obsidian-950/60 border border-obsidian-800 rounded-2xl p-3.5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-white">Services</span>
+                            <span class="text-[10px] text-slate-500 font-bold">Subtotal Rp<?= number_format($editServiceSubtotal, 0, ',', '.') ?></span>
+                        </div>
+                        <div class="flex gap-2">
+                            <label class="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 bg-obsidian-900 border border-obsidian-800 rounded-lg cursor-pointer text-[11px] font-bold text-slate-400 has-checked:border-amber-500 has-checked:text-amber-400 transition">
+                                <input type="radio" name="service_discount_type" value="rupiah" <?= ($invoice['service_discount_type'] ?? 'rupiah') !== 'percent' ? 'checked' : '' ?> class="accent-amber-600"> Rp
+                            </label>
+                            <label class="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 bg-obsidian-900 border border-obsidian-800 rounded-lg cursor-pointer text-[11px] font-bold text-slate-400 has-checked:border-amber-500 has-checked:text-amber-400 transition">
+                                <input type="radio" name="service_discount_type" value="percent" <?= ($invoice['service_discount_type'] ?? '') === 'percent' ? 'checked' : '' ?> class="accent-amber-600"> %
+                            </label>
+                        </div>
+                        <input type="number" name="service_discount" value="<?= (float)($invoice['service_discount'] ?? 0) ?>" min="0" step="0.01" placeholder="Services discount (0 = none)"
+                               class="w-full bg-obsidian-950 border border-obsidian-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 transition">
+                    </div>
+                    <div class="bg-obsidian-950/60 border border-obsidian-800 rounded-2xl p-3.5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-white">Medicines &amp; Supplies</span>
+                            <span class="text-[10px] text-slate-500 font-bold">Subtotal Rp<?= number_format($editItemSubtotal, 0, ',', '.') ?></span>
+                        </div>
+                        <div class="flex gap-2">
+                            <label class="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 bg-obsidian-900 border border-obsidian-800 rounded-lg cursor-pointer text-[11px] font-bold text-slate-400 has-checked:border-amber-500 has-checked:text-amber-400 transition">
+                                <input type="radio" name="item_discount_type" value="rupiah" <?= ($invoice['item_discount_type'] ?? 'rupiah') !== 'percent' ? 'checked' : '' ?> class="accent-amber-600"> Rp
+                            </label>
+                            <label class="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 bg-obsidian-900 border border-obsidian-800 rounded-lg cursor-pointer text-[11px] font-bold text-slate-400 has-checked:border-amber-500 has-checked:text-amber-400 transition">
+                                <input type="radio" name="item_discount_type" value="percent" <?= ($invoice['item_discount_type'] ?? '') === 'percent' ? 'checked' : '' ?> class="accent-amber-600"> %
+                            </label>
+                        </div>
+                        <input type="number" name="item_discount" value="<?= (float)($invoice['item_discount'] ?? 0) ?>" min="0" step="0.01" placeholder="Medicines discount (0 = none)"
+                               class="w-full bg-obsidian-950 border border-obsidian-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 transition">
+                    </div>
+                    <p class="text-[10px] text-slate-500">At least one category must have a discount. Combined discount cannot exceed the unpaid amount of Rp<?= number_format($editUnpaidCap, 0, ',', '.') ?>.</p>
                 </div>
 
                 <!-- Buttons -->

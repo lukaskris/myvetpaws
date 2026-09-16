@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Models\ClinicsModel;
 use App\Models\InvoicesModel;
 use App\Models\PaymentsModel;
 
@@ -34,6 +35,30 @@ class InvoiceController extends BaseController
 
         $allInvoices = $invoicesModel->orderBy('invoices.created_at', 'DESC')->findAll();
 
+        // Category subtotals per medical record, needed to resolve % discounts
+        $db = \Config\Database::connect();
+        $svcTotals = [];
+        $itmTotals = [];
+        $mrIds = array_column($allInvoices, 'medical_record_id');
+        if (!empty($mrIds)) {
+            foreach ($db->table('medical_record_services')
+                ->select('medical_record_services.medical_record_id, SUM(medical_record_services.quantity * services.price) as subtotal', false)
+                ->join('services', 'services.id = medical_record_services.service_id', 'inner')
+                ->whereIn('medical_record_services.medical_record_id', $mrIds)
+                ->groupBy('medical_record_services.medical_record_id')
+                ->get()->getResultArray() as $row) {
+                $svcTotals[$row['medical_record_id']] = (float)$row['subtotal'];
+            }
+            foreach ($db->table('medical_record_items')
+                ->select('medical_record_items.medical_record_id, SUM(medical_record_items.quantity * medical_record_items.sell_price) as subtotal', false)
+                ->join('items', 'items.id = medical_record_items.item_id', 'inner')
+                ->whereIn('medical_record_items.medical_record_id', $mrIds)
+                ->groupBy('medical_record_items.medical_record_id')
+                ->get()->getResultArray() as $row) {
+                $itmTotals[$row['medical_record_id']] = (float)$row['subtotal'];
+            }
+        }
+
         // Group invoices by customer_id and date (YYYY-MM-DD)
         $groupedInvoices = [];
         foreach ($allInvoices as $inv) {
@@ -62,12 +87,13 @@ class InvoiceController extends BaseController
 
             $groupedInvoices[$groupKey]['invoice_ids'][] = $inv['id'];
             $groupedInvoices[$groupKey]['statuses'][] = (int)$inv['status'];
-            // Net total: line-item total minus applied discount
-            $groupedInvoices[$groupKey]['total_amount'] += (float)$inv['total_amount'] - (float)($inv['discount'] ?? 0);
+            // Net total: line-item total minus resolved discount (Rp or %, invoice or per category)
+            $mrId = $inv['medical_record_id'];
+            $groupedInvoices[$groupKey]['total_amount'] += (float)$inv['total_amount']
+                - InvoicesModel::discountTotal($inv, $svcTotals[$mrId] ?? 0, $itmTotals[$mrId] ?? 0);
         }
 
         // Fetch payments for each group and aggregate
-        $db = \Config\Database::connect();
         foreach ($groupedInvoices as $key => &$group) {
             $invoiceIds = $group['invoice_ids'];
             $totalPaid = 0.00;
@@ -105,23 +131,18 @@ class InvoiceController extends BaseController
         ]);
     }
 
-    public function show($id)
+    /**
+     * Shared data for show() and download(): grouped pets, category subtotals,
+     * resolved discount breakdown, payments, and net totals for all invoices
+     * of the same customer on the same day.
+     */
+    private function gatherInvoiceGroup(array $invoice, InvoicesModel $invoicesModel): array
     {
-        $invoicesModel = new InvoicesModel();
-
-        $invoice = $invoicesModel->select('invoices.*, customers.name as customer_name, customers.email as customer_email, customers.phone as customer_phone, customers.address as customer_address')
-                                 ->join('customers', 'customers.id = invoices.customer_id', 'inner')
-                                 ->find($id);
-
-        if (!$invoice) {
-            return redirect()->to('/invoices')->with('error', 'Invoice not found.');
-        }
-
         $db = \Config\Database::connect();
-        
+
         // Fetch all invoices for this customer on the same day to group pets
         $dateStr = date('Y-m-d', strtotime($invoice['created_at']));
-        $allInvoices = $invoicesModel->select('invoices.id as inv_id, invoices.total_amount as inv_total, invoices.discount as inv_discount, invoices.status as inv_status, medical_records.id as mr_id, pets.name as pet_name, pets.species as pet_species, pets.breed as pet_breed, medical_records.diagnosis, medical_records.treatment_plan, users.name as doctor_name')
+        $allInvoices = $invoicesModel->select('invoices.id as inv_id, invoices.total_amount as inv_total, invoices.discount as inv_discount, invoices.discount_type as inv_discount_type, invoices.service_discount as inv_service_discount, invoices.service_discount_type as inv_service_discount_type, invoices.item_discount as inv_item_discount, invoices.item_discount_type as inv_item_discount_type, invoices.status as inv_status, medical_records.id as mr_id, pets.name as pet_name, pets.species as pet_species, pets.breed as pet_breed, medical_records.diagnosis, medical_records.treatment_plan, users.name as doctor_name')
                                      ->join('medical_records', 'medical_records.id = invoices.medical_record_id', 'inner')
                                      ->join('pets', 'pets.id = medical_records.pet_id', 'inner')
                                      ->join('users', 'users.id = medical_records.user_id', 'left')
@@ -130,9 +151,11 @@ class InvoiceController extends BaseController
                                      ->findAll();
 
         $groupedPets = [];
-        $totalInvoiceAmount = 0.00;
-        $totalDiscount = 0.00;
-        
+        $grossAmount = 0.00;
+        $totalInvoiceDiscount = 0.00;
+        $totalServiceDiscount = 0.00;
+        $totalItemDiscount = 0.00;
+
         foreach ($allInvoices as $inv) {
             $srvs = $db->table('medical_record_services')
                        ->select('medical_record_services.quantity, services.name, services.code, services.price')
@@ -140,14 +163,33 @@ class InvoiceController extends BaseController
                        ->where('medical_record_services.medical_record_id', $inv['mr_id'])
                        ->get()
                        ->getResultArray();
-            
+
             $itms = $db->table('medical_record_items')
                        ->select('medical_record_items.quantity, items.name, items.code, medical_record_items.sell_price as price')
                        ->join('items', 'items.id = medical_record_items.item_id', 'inner')
                        ->where('medical_record_items.medical_record_id', $inv['mr_id'])
                        ->get()
                        ->getResultArray();
-            
+
+            $srvSubtotal = 0.0;
+            foreach ($srvs as $s) {
+                $srvSubtotal += $s['price'] * $s['quantity'];
+            }
+            $itmSubtotal = 0.0;
+            foreach ($itms as $i) {
+                $itmSubtotal += $i['price'] * $i['quantity'];
+            }
+
+            // Resolve this invoice's discount, then spread it over the line rows
+            // so the PDF can show a per-item discount column that reconciles exactly.
+            $resolved = InvoicesModel::resolveDiscount($inv, $srvSubtotal, $itmSubtotal);
+            $grossInv = $srvSubtotal + $itmSubtotal;
+            // Invoice-level discount splits across categories by gross share
+            $svcPot = min($resolved['service'] + ($grossInv > 0 ? $resolved['invoice'] * ($srvSubtotal / $grossInv) : 0.0), $srvSubtotal);
+            $itmPot = min($resolved['item'] + ($grossInv > 0 ? $resolved['invoice'] * ($itmSubtotal / $grossInv) : 0.0), $itmSubtotal);
+            $srvs = InvoicesModel::allocateDiscount($srvs, $svcPot);
+            $itms = InvoicesModel::allocateDiscount($itms, $itmPot);
+
             $groupedPets[] = [
                 'invoice_id'     => $inv['inv_id'],
                 'pet_name'       => $inv['pet_name'],
@@ -160,12 +202,15 @@ class InvoiceController extends BaseController
                 'items'          => $itms,
                 'subtotal'       => $inv['inv_total']
             ];
-            $totalInvoiceAmount += $inv['inv_total'];
-            $totalDiscount += (float)($inv['inv_discount'] ?? 0);
+            $grossAmount += $inv['inv_total'];
+            $totalInvoiceDiscount += $resolved['invoice'];
+            $totalServiceDiscount += $resolved['service'];
+            $totalItemDiscount += $resolved['item'];
         }
+        $totalDiscount = $totalInvoiceDiscount + $totalServiceDiscount + $totalItemDiscount;
 
         // Grand total is net of discounts
-        $totalInvoiceAmount -= $totalDiscount;
+        $totalInvoiceAmount = $grossAmount - $totalDiscount;
 
         // Fetch payments history aggregated across these invoices
         $invoiceIds = array_column($allInvoices, 'inv_id');
@@ -180,19 +225,47 @@ class InvoiceController extends BaseController
                 $totalPaid += $p['amount'];
             }
         }
-        
+
         $remainingBalance = $totalInvoiceAmount - $totalPaid;
         if ($remainingBalance < 0.01) $remainingBalance = 0.00;
 
+        return [
+            'groupedPets'          => $groupedPets,
+            'payments'             => $payments,
+            'grossAmount'          => $grossAmount,
+            'totalInvoiceAmount'   => $totalInvoiceAmount,
+            'totalDiscount'        => $totalDiscount,
+            'totalInvoiceDiscount' => $totalInvoiceDiscount,
+            'totalServiceDiscount' => $totalServiceDiscount,
+            'totalItemDiscount'    => $totalItemDiscount,
+            'totalPaid'            => $totalPaid,
+            'remainingBalance'     => $remainingBalance,
+        ];
+    }
+
+    public function show($id)
+    {
+        $invoicesModel = new InvoicesModel();
+
+        $invoice = $invoicesModel->select('invoices.*, customers.name as customer_name, customers.email as customer_email, customers.phone as customer_phone, customers.address as customer_address')
+                                 ->join('customers', 'customers.id = invoices.customer_id', 'inner')
+                                 ->find($id);
+
+        if (!$invoice) {
+            return redirect()->to('/invoices')->with('error', 'Invoice not found.');
+        }
+
+        $data = $this->gatherInvoiceGroup($invoice, $invoicesModel);
+
+        // Category subtotals + unpaid cap of the invoice the discount modal edits
+        $editSubtotals = InvoicesModel::categorySubtotals($invoice['medical_record_id']);
+
         return view('invoices/show', [
-            'invoice'            => $invoice,
-            'groupedPets'        => $groupedPets,
-            'payments'           => $payments,
-            'totalInvoiceAmount' => $totalInvoiceAmount,
-            'totalDiscount'      => $totalDiscount,
-            'totalPaid'          => $totalPaid,
-            'remainingBalance'   => $remainingBalance,
-        ]);
+            'invoice'             => $invoice,
+            'editServiceSubtotal' => $editSubtotals['service'],
+            'editItemSubtotal'    => $editSubtotals['item'],
+            'editUnpaidCap'       => max(0.0, (float)$invoice['total_amount'] - InvoicesModel::paidForInvoice($id)),
+        ] + $data);
     }
 
     public function pay($id)
@@ -212,8 +285,9 @@ class InvoiceController extends BaseController
         foreach ($payments as $p) {
             $totalPaid += $p['amount'];
         }
-        // Net due accounts for the applied discount
-        $netAmount = (float)$invoice['total_amount'] - (float)($invoice['discount'] ?? 0);
+        // Net due accounts for the resolved discount (Rp or %, invoice or per category)
+        $subtotals  = InvoicesModel::categorySubtotals($invoice['medical_record_id']);
+        $netAmount  = (float)$invoice['total_amount'] - InvoicesModel::discountTotal($invoice, $subtotals['service'], $subtotals['item']);
         $remainingBalance = $netAmount - $totalPaid;
 
         if ($remainingBalance <= 0) {
@@ -267,8 +341,10 @@ class InvoiceController extends BaseController
     }
 
     /**
-     * Apply or update a fixed Rp discount on a single invoice.
-     * Guard: discount may not exceed the unpaid remainder of the invoice.
+     * Apply or update a discount on a single invoice.
+     * Two modes: one discount for the whole invoice, or separate discounts
+     * for services and medicines/supplies. Each accepts Rp or percent.
+     * Guard: resolved discount may not exceed the unpaid remainder of the invoice.
      */
     public function applyDiscount($id)
     {
@@ -279,33 +355,105 @@ class InvoiceController extends BaseController
             return redirect()->to('/invoices')->with('error', 'Invoice not found.');
         }
 
-        if (!$this->validate([
-            'discount' => 'required|decimal|greater_than[0]',
-        ])) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        $mode = $this->request->getPost('mode') === 'category' ? 'category' : 'invoice';
+
+        $subtotals   = InvoicesModel::categorySubtotals($invoice['medical_record_id']);
+        $maxDiscount = (float)$invoice['total_amount'] - InvoicesModel::paidForInvoice($id);
+
+        // Shared "discount exceeds unpaid remainder" guard
+        $guardUnpaid = function (float $resolvedTotal) use ($maxDiscount) {
+            if ($resolvedTotal > $maxDiscount + 0.01) {
+                return redirect()->back()->withInput()
+                    ->with('error', 'Discount cannot exceed the unpaid amount of Rp' . number_format($maxDiscount, 0, ',', '.') . '.');
+            }
+            return null;
+        };
+
+        if ($mode === 'invoice') {
+            $value = (float)$this->request->getPost('discount');
+            $type  = $this->request->getPost('discount_type') === 'percent' ? 'percent' : 'rupiah';
+
+            if ($value <= 0) {
+                return redirect()->back()->withInput()->with('error', 'Discount amount must be greater than zero.');
+            }
+            if ($type === 'percent' && $value > 100) {
+                return redirect()->back()->withInput()->with('error', 'Percentage discount cannot exceed 100%.');
+            }
+
+            $resolvedTotal = InvoicesModel::discountTotal(
+                ['discount' => $value, 'discount_type' => $type, 'service_discount' => 0, 'item_discount' => 0],
+                $subtotals['service'],
+                $subtotals['item']
+            );
+            if ($error = $guardUnpaid($resolvedTotal)) {
+                return $error;
+            }
+
+            $invoicesModel->update($id, [
+                'discount'              => $value,
+                'discount_type'         => $type,
+                'service_discount'      => 0,
+                'service_discount_type' => 'rupiah',
+                'item_discount'         => 0,
+                'item_discount_type'    => 'rupiah',
+            ]);
+
+            $label = $type === 'percent' ? rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.') . '%' : 'Rp' . number_format($value, 0, ',', '.');
+            return redirect()->to('/invoices/show/' . $id)->with('success', 'Discount of ' . $label . ' applied successfully.');
         }
 
-        $discount = (float)$this->request->getPost('discount');
+        // Per-category mode
+        $svcValue = (float)$this->request->getPost('service_discount');
+        $itmValue = (float)$this->request->getPost('item_discount');
+        $svcType  = $this->request->getPost('service_discount_type') === 'percent' ? 'percent' : 'rupiah';
+        $itmType  = $this->request->getPost('item_discount_type') === 'percent' ? 'percent' : 'rupiah';
 
-        $paymentsModel = new PaymentsModel();
-        $totalPaid = 0.00;
-        foreach ($paymentsModel->where('invoice_id', $id)->findAll() as $p) {
-            $totalPaid += $p['amount'];
+        if ($svcValue <= 0 && $itmValue <= 0) {
+            return redirect()->back()->withInput()->with('error', 'Enter a discount for services, medicines & supplies, or both.');
         }
 
-        $maxDiscount = (float)$invoice['total_amount'] - $totalPaid;
-        if ($discount > $maxDiscount + 0.01) {
-            return redirect()->back()->withInput()->with('error', 'Discount cannot exceed the unpaid amount of Rp' . number_format($maxDiscount, 0, ',', '.') . '.');
+        $categories = [
+            ['Services', $svcValue, $svcType, $subtotals['service']],
+            ['Medicines & Supplies', $itmValue, $itmType, $subtotals['item']],
+        ];
+        foreach ($categories as [$label, $value, $type, $subtotal]) {
+            if ($value <= 0) {
+                continue;
+            }
+            if ($type === 'percent' && $value > 100) {
+                return redirect()->back()->withInput()->with('error', $label . ' percentage discount cannot exceed 100%.');
+            }
+            $amount = $type === 'percent' ? $subtotal * $value / 100 : $value;
+            if ($amount > $subtotal + 0.01) {
+                return redirect()->back()->withInput()->with('error', $label . ' discount cannot exceed the category subtotal of Rp' . number_format($subtotal, 0, ',', '.') . '.');
+            }
         }
 
-        $invoicesModel->update($id, ['discount' => $discount]);
+        $resolvedTotal = InvoicesModel::discountTotal(
+            ['discount' => 0, 'service_discount' => $svcValue, 'item_discount' => $itmValue,
+             'service_discount_type' => $svcType, 'item_discount_type' => $itmType],
+            $subtotals['service'],
+            $subtotals['item']
+        );
+        if ($error = $guardUnpaid($resolvedTotal)) {
+            return $error;
+        }
 
-        return redirect()->to('/invoices/show/' . $id)->with('success', 'Discount of Rp' . number_format($discount, 0, ',', '.') . ' applied successfully.');
+        $invoicesModel->update($id, [
+            'discount'              => 0,
+            'discount_type'         => 'rupiah',
+            'service_discount'      => $svcValue,
+            'service_discount_type' => $svcType,
+            'item_discount'         => $itmValue,
+            'item_discount_type'    => $itmType,
+        ]);
+
+        return redirect()->to('/invoices/show/' . $id)->with('success', 'Category discounts applied successfully.');
     }
 
     public function download($id)
     {
-        $invoicesModel = new \App\Models\InvoicesModel();
+        $invoicesModel = new InvoicesModel();
 
         $invoice = $invoicesModel->select('invoices.*, customers.name as customer_name, customers.email as customer_email, customers.phone as customer_phone, customers.address as customer_address')
                                  ->join('customers', 'customers.id = invoices.customer_id', 'inner')
@@ -315,75 +463,10 @@ class InvoiceController extends BaseController
             return redirect()->to('/invoices')->with('error', 'Invoice not found.');
         }
 
-        $db = \Config\Database::connect();
-        
-        // Fetch all invoices for this customer on the same day to group pets
-        $dateStr = date('Y-m-d', strtotime($invoice['created_at']));
-        $allInvoices = $invoicesModel->select('invoices.id as inv_id, invoices.total_amount as inv_total, invoices.discount as inv_discount, invoices.status as inv_status, medical_records.id as mr_id, pets.name as pet_name, pets.species as pet_species, pets.breed as pet_breed, medical_records.diagnosis, medical_records.treatment_plan, users.name as doctor_name')
-                                     ->join('medical_records', 'medical_records.id = invoices.medical_record_id', 'inner')
-                                     ->join('pets', 'pets.id = medical_records.pet_id', 'inner')
-                                     ->join('users', 'users.id = medical_records.user_id', 'left')
-                                     ->where('invoices.customer_id', $invoice['customer_id'])
-                                     ->where('DATE(invoices.created_at)', $dateStr)
-                                     ->findAll();
-
-        $groupedPets = [];
-        $totalInvoiceAmount = 0.00;
-        $totalDiscount = 0.00;
-        
-        foreach ($allInvoices as $inv) {
-            $srvs = $db->table('medical_record_services')
-                       ->select('medical_record_services.quantity, services.name, services.code, services.price')
-                       ->join('services', 'services.id = medical_record_services.service_id', 'inner')
-                       ->where('medical_record_services.medical_record_id', $inv['mr_id'])
-                       ->get()
-                       ->getResultArray();
-            
-            $itms = $db->table('medical_record_items')
-                       ->select('medical_record_items.quantity, items.name, items.code, medical_record_items.sell_price as price')
-                       ->join('items', 'items.id = medical_record_items.item_id', 'inner')
-                       ->where('medical_record_items.medical_record_id', $inv['mr_id'])
-                       ->get()
-                       ->getResultArray();
-            
-            $groupedPets[] = [
-                'invoice_id'     => $inv['inv_id'],
-                'pet_name'       => $inv['pet_name'],
-                'pet_species'    => $inv['pet_species'],
-                'pet_breed'      => $inv['pet_breed'],
-                'diagnosis'      => $inv['diagnosis'],
-                'treatment_plan' => $inv['treatment_plan'],
-                'doctor_name'    => $inv['doctor_name'],
-                'services'       => $srvs,
-                'items'          => $itms,
-                'subtotal'       => $inv['inv_total']
-            ];
-            $totalInvoiceAmount += $inv['inv_total'];
-            $totalDiscount += (float)($inv['inv_discount'] ?? 0);
-        }
-
-        // Grand total is net of discounts
-        $totalInvoiceAmount -= $totalDiscount;
-
-        // Fetch payments history aggregated across these invoices
-        $invoiceIds = array_column($allInvoices, 'inv_id');
-        $payments = [];
-        $totalPaid = 0.00;
-        if (!empty($invoiceIds)) {
-            $paymentsModel = new \App\Models\PaymentsModel();
-            $payments = $paymentsModel->whereIn('invoice_id', $invoiceIds)
-                                      ->orderBy('payment_date', 'ASC')
-                                      ->findAll();
-            foreach ($payments as $p) {
-                $totalPaid += $p['amount'];
-            }
-        }
-        
-        $remainingBalance = $totalInvoiceAmount - $totalPaid;
-        if ($remainingBalance < 0.01) $remainingBalance = 0.00;
+        $data = $this->gatherInvoiceGroup($invoice, $invoicesModel);
 
         // Fetch clinic details for the invoice header
-        $clinicModel = new \App\Models\ClinicsModel();
+        $clinicModel = new ClinicsModel();
         $clinic = $clinicModel->find($invoice['clinic_id'] ?? session()->get('clinic_id'));
 
         // Prepare base64 logo if available
@@ -398,16 +481,10 @@ class InvoiceController extends BaseController
 
         // Render PDF HTML view
         $html = view('invoices/pdf_template', [
-            'invoice'            => $invoice,
-            'groupedPets'        => $groupedPets,
-            'payments'           => $payments,
-            'totalInvoiceAmount' => $totalInvoiceAmount,
-            'totalDiscount'      => $totalDiscount,
-            'totalPaid'          => $totalPaid,
-            'remainingBalance'   => $remainingBalance,
-            'clinic'             => $clinic,
-            'logoBase64'         => $logoBase64,
-        ]);
+            'invoice'   => $invoice,
+            'clinic'    => $clinic,
+            'logoBase64' => $logoBase64,
+        ] + $data);
 
         // Setup Dompdf options
         $options = new \Dompdf\Options();

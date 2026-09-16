@@ -6,6 +6,7 @@ use App\Models\VisitsModel;
 use App\Models\CustomersModel;
 use App\Models\PetsModel;
 use App\Models\ItemsModel;
+use App\Models\InvoicesModel;
 
 class DashboardController extends BaseController
 {
@@ -52,9 +53,25 @@ class DashboardController extends BaseController
                                  ->getRowArray();
         $revenueSummary = isset($todayRevenueResult['amount']) ? (float)$todayRevenueResult['amount'] : 0.00;
 
-        $outstandingResult = $db->query("
-            SELECT SUM(invoices.total_amount - COALESCE(payments_sum.total_paid, 0)) as total_outstanding
+        // Outstanding must net out discounts; % discounts resolve against category
+        // subtotals, so resolve per invoice in PHP instead of a plain SUM()
+        $outstandingRows = $db->query("
+            SELECT invoices.*,
+                   COALESCE(svc.subtotal, 0) as service_subtotal,
+                   COALESCE(itm.subtotal, 0) as item_subtotal,
+                   COALESCE(payments_sum.total_paid, 0) as total_paid
             FROM invoices
+            LEFT JOIN (
+                SELECT mrs.medical_record_id, SUM(mrs.quantity * s.price) as subtotal
+                FROM medical_record_services mrs
+                JOIN services s ON s.id = mrs.service_id
+                GROUP BY mrs.medical_record_id
+            ) as svc ON svc.medical_record_id = invoices.medical_record_id
+            LEFT JOIN (
+                SELECT mri.medical_record_id, SUM(mri.quantity * mri.sell_price) as subtotal
+                FROM medical_record_items mri
+                GROUP BY mri.medical_record_id
+            ) as itm ON itm.medical_record_id = invoices.medical_record_id
             LEFT JOIN (
                 SELECT invoice_id, SUM(amount) as total_paid
                 FROM payments
@@ -62,8 +79,13 @@ class DashboardController extends BaseController
                 GROUP BY invoice_id
             ) as payments_sum ON payments_sum.invoice_id = invoices.id
             WHERE invoices.clinic_id = ? AND invoices.status IN (1, 3) AND invoices.deleted_at IS NULL
-        ", [$clinicId, $clinicId])->getRowArray();
-        $outstandingPayments = isset($outstandingResult['total_outstanding']) ? (float)$outstandingResult['total_outstanding'] : 0.00;
+        ", [$clinicId, $clinicId])->getResultArray();
+        $outstandingPayments = 0.00;
+        foreach ($outstandingRows as $row) {
+            $outstandingPayments += (float)$row['total_amount']
+                - InvoicesModel::discountTotal($row, (float)$row['service_subtotal'], (float)$row['item_subtotal'])
+                - (float)$row['total_paid'];
+        }
         if ($outstandingPayments < 0) $outstandingPayments = 0.00;
 
         // Query low stock items
