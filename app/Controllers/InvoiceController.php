@@ -503,7 +503,7 @@ class InvoiceController extends BaseController
 
         $dompdf = new \Dompdf\Dompdf($options);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('a4', 'landscape');
+        $dompdf->setPaper('a4', 'portrait');
         $dompdf->render();
 
         // Format clean filename (e.g. invoice-INV-001.pdf)
