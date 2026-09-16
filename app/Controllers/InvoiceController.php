@@ -182,7 +182,16 @@ class InvoiceController extends BaseController
 
             // Resolve this invoice's discount, then spread it over the line rows
             // so the PDF can show a per-item discount column that reconciles exactly.
-            $resolved = InvoicesModel::resolveDiscount($inv, $srvSubtotal, $itmSubtotal);
+            // Map select aliases back to the column keys resolveDiscount() expects.
+            $discountRow = [
+                'discount'              => $inv['inv_discount'],
+                'discount_type'         => $inv['inv_discount_type'],
+                'service_discount'      => $inv['inv_service_discount'],
+                'service_discount_type' => $inv['inv_service_discount_type'],
+                'item_discount'         => $inv['inv_item_discount'],
+                'item_discount_type'    => $inv['inv_item_discount_type'],
+            ];
+            $resolved = InvoicesModel::resolveDiscount($discountRow, $srvSubtotal, $itmSubtotal);
             $grossInv = $srvSubtotal + $itmSubtotal;
             // Invoice-level discount splits across categories by gross share
             $svcPot = min($resolved['service'] + ($grossInv > 0 ? $resolved['invoice'] * ($srvSubtotal / $grossInv) : 0.0), $srvSubtotal);
